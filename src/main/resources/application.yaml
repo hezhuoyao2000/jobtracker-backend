@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: myfirstspringboot
+  datasource:
+    url: jdbc:postgresql://localhost:2015/mysite_dev
+    username: hezhuoyao
+    password: hzythebest1  # 启动时通过 -DDB_PASSWORD=你的密码 传入
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate  # 开发阶段可用 update，生产用 validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: public
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.example.myfirstspringboot.entity
+  configuration:
+    map-underscore-to-camel-case: true
