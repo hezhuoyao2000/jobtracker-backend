@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+/.env.chat
+/.env.kimi
+/.env.qwen
+/.env.xAI
+/AGENTS.md
+/plan.md
+/start-claude.bat
