@@ -3,9 +3,9 @@ package com.example.myfirstspringboot.util;
 import com.example.myfirstspringboot.Entity.Board;
 import com.example.myfirstspringboot.Entity.KanbanColumn;
 import com.example.myfirstspringboot.Entity.JobCard;
-import com.example.myfirstspringboot.DTO.response.BoardDto;
-import com.example.myfirstspringboot.DTO.response.ColumnDto;
-import com.example.myfirstspringboot.DTO.response.JobCardDto;
+import com.example.myfirstspringboot.dto.response.BoardDto;
+import com.example.myfirstspringboot.dto.response.ColumnDto;
+import com.example.myfirstspringboot.dto.response.JobCardDto;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

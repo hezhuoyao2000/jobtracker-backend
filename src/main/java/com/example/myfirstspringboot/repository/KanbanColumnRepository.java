@@ -1,4 +1,4 @@
-package com.example.myfirstspringboot.Repository;
+package com.example.myfirstspringboot.repository;
 
 import com.example.myfirstspringboot.Entity.KanbanColumn;
 import org.springframework.data.jpa.repository.JpaRepository;

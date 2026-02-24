@@ -1,4 +1,4 @@
-package com.example.myfirstspringboot.DTO.response;
+package com.example.myfirstspringboot.dto.response;
 
 import lombok.Data;
 import java.util.Map;
