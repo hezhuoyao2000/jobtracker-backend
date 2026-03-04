@@ -33,10 +33,12 @@ build/
 .vscode/
 /.env.chat
 /.env.kimi
+/.env.qwenplan
 /.env.qwen
-/.env.xAI
 /AGENTS.md
 /plan.md
 /start-claude.bat
 /docs
 /.aiassistant/rules
+backup/
+postgres_data/
