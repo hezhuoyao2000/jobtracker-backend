@@ -1,8 +1,6 @@
 package com.example.myfirstspringboot.service.impl;
 
 import com.example.myfirstspringboot.Entity.Board;
-import com.example.myfirstspringboot.Entity.JobCard;
-import com.example.myfirstspringboot.repository.JobCardRepository;
 import com.example.myfirstspringboot.Entity.KanbanColumn;
 import com.example.myfirstspringboot.dto.request.CreateBoardRequest;
 import com.example.myfirstspringboot.dto.request.LoadBoardRequest;
@@ -12,6 +10,7 @@ import com.example.myfirstspringboot.dto.response.ColumnDto;
 import com.example.myfirstspringboot.dto.response.JobCardDto;
 import com.example.myfirstspringboot.mapper.BoardMapper;
 import com.example.myfirstspringboot.repository.BoardRepository;
+import com.example.myfirstspringboot.repository.JobCardRepository;
 import com.example.myfirstspringboot.repository.KanbanColumnRepository;
 import com.example.myfirstspringboot.util.DtoConverter;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +26,6 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,13 +38,14 @@ import static org.mockito.Mockito.*;
  * 测试说明：
  * - 使用 Mockito 框架进行单元测试
  * - 不依赖真实数据库，使用 Mock 对象模拟 Repository 和 Mapper
- * - 测试 createBoard 方法的业务逻辑
+ * - createBoard 使用 JPA 方案（需要 Mock BoardRepository、DtoConverter）
+ * - loadBoard 使用 MyBatis 方案（需要 Mock BoardMapper）
  */
-@ExtendWith(MockitoExtension.class)  // 启用 Mockito 测试支持
+@ExtendWith(MockitoExtension.class)
 class BoardServiceImplTest {
 
     // ========== Mock 对象 ==========
-
+    // createBoard 方法使用 JPA 方案，需要以下 Mock：
     @Mock
     private BoardRepository boardRepository;
 
@@ -54,13 +53,14 @@ class BoardServiceImplTest {
     private KanbanColumnRepository columnRepository;
 
     @Mock
-    private BoardMapper boardMapper;
+    private JobCardRepository jobCardRepository;
 
     @Mock
     private DtoConverter dtoConverter;
 
+    // loadBoard 方法使用 MyBatis 方案，需要以下 Mock：
     @Mock
-    private JobCardRepository jobCardRepository;
+    private BoardMapper boardMapper;
 
     // ========== 被测试对象 ==========
 
@@ -230,6 +230,7 @@ class BoardServiceImplTest {
 
 
     // ============ 加载看板测试 ============ //
+    // 注意：当前代码使用 MyBatis 联表查询方案，测试需要 Mock BoardMapper
 
     @Test
     @DisplayName("测试加载看板 - 指定 boardId 成功")
@@ -244,73 +245,37 @@ class BoardServiceImplTest {
         LoadBoardRequest request = new LoadBoardRequest();
         request.setBoardId(boardId);
 
-        // 3. 创建测试用的 Board 实体
-        Board testBoard = new Board();
-        testBoard.setId(boardId);
-        testBoard.setUserId(userId);
-        testBoard.setName("Test Board");
-
-        // 4. 创建测试用的列
-        KanbanColumn column1 = new KanbanColumn();
-        column1.setId(UUID.randomUUID());
-        column1.setBoardId(boardId);
-        column1.setName("Wish list");
-        column1.setSortOrder(0);
-
-        KanbanColumn column2 = new KanbanColumn();
-        column2.setId(UUID.randomUUID());
-        column2.setBoardId(boardId);
-        column2.setName("Applied");
-        column2.setSortOrder(1);
-
-        List<KanbanColumn> testColumns = Arrays.asList(column1, column2);
-
-        // 5. 创建测试用的卡片
-        JobCard card1 = new JobCard();
-        card1.setId(UUID.randomUUID());
-        card1.setBoardId(boardId);
-        card1.setJobTitle("Software Engineer");
-        card1.setCompanyName("Google");
-
-        List<JobCard> testCards = Arrays.asList(card1);
-
-        // 6. 创建期望返回的 DTO
+        // 3. 创建期望返回的 DTO（MyBatis 直接返回 BoardDataDto）
         BoardDto expectedBoardDto = new BoardDto();
         expectedBoardDto.setId(boardId);
         expectedBoardDto.setUserId(userId);
         expectedBoardDto.setName("Test Board");
 
         ColumnDto expectedColumnDto1 = new ColumnDto();
-        expectedColumnDto1.setId(column1.getId());
+        expectedColumnDto1.setId(UUID.randomUUID());
         expectedColumnDto1.setName("Wish list");
 
-        List<ColumnDto> expectedColumnDtos = Arrays.asList(expectedColumnDto1,
-                new ColumnDto() {{ setId(column2.getId()); setName("Applied"); }});
+        ColumnDto expectedColumnDto2 = new ColumnDto();
+        expectedColumnDto2.setId(UUID.randomUUID());
+        expectedColumnDto2.setName("Applied");
 
-        List<JobCardDto> expectedCardDtos = Arrays.asList(new JobCardDto() {{
-            setId(card1.getId());
-            setJobTitle("Software Engineer");
-            setCompanyName("Google");
-        }});
+        List<ColumnDto> expectedColumnDtos = Arrays.asList(expectedColumnDto1, expectedColumnDto2);
+
+        JobCardDto expectedCardDto = new JobCardDto();
+        expectedCardDto.setId(UUID.randomUUID());
+        expectedCardDto.setJobTitle("Software Engineer");
+        expectedCardDto.setCompanyName("Google");
+
+        List<JobCardDto> expectedCardDtos = Arrays.asList(expectedCardDto);
 
         BoardDataDto expectedBoardDataDto = new BoardDataDto();
         expectedBoardDataDto.setBoard(expectedBoardDto);
         expectedBoardDataDto.setColumns(expectedColumnDtos);
         expectedBoardDataDto.setCards(expectedCardDtos);
 
-        // 7. 定义 Mock 行为
-        when(boardRepository.findByIdAndUserId(boardId, userId))
-                .thenReturn(Optional.of(testBoard));
-
-        when(columnRepository.findByBoardIdOrderBySortOrderAsc(boardId))
-                .thenReturn(testColumns);
-
-        when(jobCardRepository.findByBoardIdAndDeletedAtIsNull(boardId))
-                .thenReturn(testCards);
-
-        when(dtoConverter.toBoardDto(testBoard)).thenReturn(expectedBoardDto);
-        when(dtoConverter.toColumnDtoList(testColumns)).thenReturn(expectedColumnDtos);
-        when(dtoConverter.toJobCardDtoList(testCards)).thenReturn(expectedCardDtos);
+        // 4. 定义 Mock 行为 - MyBatis 方案直接返回 BoardDataDto
+        when(boardMapper.findBoardDataByBoardId(boardId, userId))
+                .thenReturn(expectedBoardDataDto);
 
         // --- Act（执行阶段）---
 
@@ -335,10 +300,13 @@ class BoardServiceImplTest {
         assertNotNull(result.getCards(), "cards 不应为 null");
         assertEquals(1, result.getCards().size(), "应该返回 1 个卡片");
 
-        // 验证 Repository 方法被调用
-        verify(boardRepository, times(1)).findByIdAndUserId(boardId, userId);
-        verify(columnRepository, times(1)).findByBoardIdOrderBySortOrderAsc(boardId);
-        verify(jobCardRepository, times(1)).findByBoardIdAndDeletedAtIsNull(boardId);
+        // 验证 MyBatis Mapper 方法被调用
+        verify(boardMapper, times(1)).findBoardDataByBoardId(boardId, userId);
+
+        // 验证 JPA Repository 未被调用（因为使用的是 MyBatis 方案）
+        verify(boardRepository, never()).findByIdAndUserId(any(), any());
+        verify(columnRepository, never()).findByBoardIdOrderBySortOrderAsc(any());
+        verify(jobCardRepository, never()).findByBoardIdAndDeletedAtIsNull(any());
     }
 
     @Test
@@ -350,29 +318,21 @@ class BoardServiceImplTest {
         // boardId 为 null
 
         UUID boardId = UUID.randomUUID();
-        Board firstBoard = new Board();
-        firstBoard.setId(boardId);
-        firstBoard.setUserId(userId);
-        firstBoard.setName("My First Board");
 
-        List<Board> userBoards = Arrays.asList(firstBoard);
+        // 创建期望返回的 DTO
+        BoardDto expectedBoardDto = new BoardDto();
+        expectedBoardDto.setId(boardId);
+        expectedBoardDto.setUserId(userId);
+        expectedBoardDto.setName("My First Board");
 
-        // 定义 Mock 行为
-        when(boardRepository.findByUserIdOrderByCreatedAtAsc(userId))
-                .thenReturn(userBoards);
-        when(columnRepository.findByBoardIdOrderBySortOrderAsc(boardId))
-                .thenReturn(Collections.emptyList());
-        when(jobCardRepository.findByBoardIdAndDeletedAtIsNull(boardId))
-                .thenReturn(Collections.emptyList());
-        when(dtoConverter.toBoardDto(firstBoard))
-                .thenReturn(new BoardDto() {{
-                    setId(boardId);
-                    setName("My First Board");
-                }});
-        when(dtoConverter.toColumnDtoList(Collections.emptyList()))
-                .thenReturn(Collections.emptyList());
-        when(dtoConverter.toJobCardDtoList(Collections.emptyList()))
-                .thenReturn(Collections.emptyList());
+        BoardDataDto expectedBoardDataDto = new BoardDataDto();
+        expectedBoardDataDto.setBoard(expectedBoardDto);
+        expectedBoardDataDto.setColumns(Collections.emptyList());
+        expectedBoardDataDto.setCards(Collections.emptyList());
+
+        // 定义 Mock 行为 - MyBatis 方案
+        when(boardMapper.findBoardDataByUserId(userId))
+                .thenReturn(expectedBoardDataDto);
 
         // --- Act ---
         BoardDataDto result = boardService.loadBoard(userId, request);
@@ -382,8 +342,11 @@ class BoardServiceImplTest {
         assertEquals(boardId, result.getBoard().getId(), "应该返回用户的第一个看板");
         assertEquals("My First Board", result.getBoard().getName(), "看板名称应该匹配");
 
-        // 验证调用了正确的方法
-        verify(boardRepository, times(1)).findByUserIdOrderByCreatedAtAsc(userId);
+        // 验证调用了 MyBatis Mapper
+        verify(boardMapper, times(1)).findBoardDataByUserId(userId);
+
+        // 验证 JPA Repository 未被调用
+        verify(boardRepository, never()).findByUserIdOrderByCreatedAtAsc(any());
     }
 
     @Test
@@ -395,9 +358,9 @@ class BoardServiceImplTest {
         LoadBoardRequest request = new LoadBoardRequest();
         request.setBoardId(nonExistentBoardId);
 
-        // 定义 Mock 行为：看板不存在
-        when(boardRepository.findByIdAndUserId(nonExistentBoardId, userId))
-                .thenReturn(Optional.empty());
+        // 定义 Mock 行为：MyBatis 返回 null 表示看板不存在
+        when(boardMapper.findBoardDataByBoardId(nonExistentBoardId, userId))
+                .thenReturn(null);
 
         // --- Act & Assert ---
         // 验证抛出 RuntimeException
@@ -414,20 +377,19 @@ class BoardServiceImplTest {
         // --- Arrange ---
         UUID boardId = UUID.randomUUID();
         String userId = "test-user-123";
-        String otherUserId = "other-user-456";
         LoadBoardRequest request = new LoadBoardRequest();
         request.setBoardId(boardId);
 
-        // 定义 Mock 行为：看板属于其他用户
-        when(boardRepository.findByIdAndUserId(boardId, userId))
-                .thenReturn(Optional.empty());
+        // 定义 Mock 行为：MyBatis 返回 null 表示无权访问（看板不属于该用户）
+        when(boardMapper.findBoardDataByBoardId(boardId, userId))
+                .thenReturn(null);
 
         // --- Act & Assert ---
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             boardService.loadBoard(userId, request);
         });
 
-        assertEquals("看板不存在或无权访问", exception.getMessage(), "异常消息应该匹配");
+        assertEquals("看板不存在", exception.getMessage(), "异常消息应该匹配");
     }
 
     @Test
@@ -438,9 +400,9 @@ class BoardServiceImplTest {
         LoadBoardRequest request = new LoadBoardRequest();
         // boardId 为 null，应该加载用户的第一个看板
 
-        // 定义 Mock 行为：用户没有任何看板
-        when(boardRepository.findByUserIdOrderByCreatedAtAsc(userId))
-                .thenReturn(Collections.emptyList());
+        // 定义 Mock 行为：MyBatis 返回空数据
+        when(boardMapper.findBoardDataByUserId(userId))
+                .thenReturn(null);
 
         // --- Act & Assert ---
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
@@ -459,52 +421,56 @@ class BoardServiceImplTest {
         LoadBoardRequest request = new LoadBoardRequest();
         request.setBoardId(boardId);
 
-        Board testBoard = new Board();
-        testBoard.setId(boardId);
-        testBoard.setUserId(userId);
-        testBoard.setName("Complete Board");
+        // 创建期望返回的 DTO
+        BoardDto expectedBoardDto = new BoardDto();
+        expectedBoardDto.setId(boardId);
+        expectedBoardDto.setName("Complete Board");
 
-        // 创建 5 个默认列
+        // 创建 5 个默认列的 DTO
         List<String> columnNames = Arrays.asList("Wish list", "Applied", "Interviewing", "Offered", "Rejected");
-        List<KanbanColumn> testColumns = new ArrayList<>();
+        List<ColumnDto> expectedColumnDtos = new ArrayList<>();
         for (int i = 0; i < columnNames.size(); i++) {
-            KanbanColumn column = new KanbanColumn();
-            column.setId(UUID.randomUUID());
-            column.setName(columnNames.get(i));
-            column.setSortOrder(i);
-            testColumns.add(column);
+            ColumnDto columnDto = new ColumnDto();
+            columnDto.setId(UUID.randomUUID());
+            columnDto.setName(columnNames.get(i));
+            columnDto.setSortOrder(i);
+            expectedColumnDtos.add(columnDto);
         }
 
-        // 创建 3 张卡片
-        List<JobCard> testCards = new ArrayList<>();
+        // 创建 3 张卡片的 DTO
+        List<JobCardDto> expectedCardDtos = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
-            JobCard card = new JobCard();
-            card.setId(UUID.randomUUID());
-            card.setJobTitle("Job " + i);
-            card.setCompanyName("Company " + i);
-            testCards.add(card);
+            JobCardDto cardDto = new JobCardDto();
+            cardDto.setId(UUID.randomUUID());
+            cardDto.setJobTitle("Job " + i);
+            cardDto.setCompanyName("Company " + i);
+            expectedCardDtos.add(cardDto);
         }
 
-        // 定义 Mock 行为
-        when(boardRepository.findByIdAndUserId(boardId, userId))
-                .thenReturn(Optional.of(testBoard));
-        when(columnRepository.findByBoardIdOrderBySortOrderAsc(boardId))
-                .thenReturn(testColumns);
-        when(jobCardRepository.findByBoardIdAndDeletedAtIsNull(boardId))
-                .thenReturn(testCards);
+        BoardDataDto expectedBoardDataDto = new BoardDataDto();
+        expectedBoardDataDto.setBoard(expectedBoardDto);
+        expectedBoardDataDto.setColumns(expectedColumnDtos);
+        expectedBoardDataDto.setCards(expectedCardDtos);
+
+        // 定义 Mock 行为 - MyBatis 方案
+        when(boardMapper.findBoardDataByBoardId(boardId, userId))
+                .thenReturn(expectedBoardDataDto);
 
         // --- Act ---
         BoardDataDto result = boardService.loadBoard(userId, request);
 
         // --- Assert ---
-        // 验证调用了所有必要的 Repository 方法
-        verify(boardRepository, times(1)).findByIdAndUserId(boardId, userId);
-        verify(columnRepository, times(1)).findByBoardIdOrderBySortOrderAsc(boardId);
-        verify(jobCardRepository, times(1)).findByBoardIdAndDeletedAtIsNull(boardId);
+        // 验证调用了 MyBatis Mapper
+        verify(boardMapper, times(1)).findBoardDataByBoardId(boardId, userId);
 
-        // 验证 dtoConverter 被调用
-        verify(dtoConverter, times(1)).toBoardDto(testBoard);
-        verify(dtoConverter, times(1)).toColumnDtoList(testColumns);
-        verify(dtoConverter, times(1)).toJobCardDtoList(testCards);
+        // 验证 JPA Repository 未被调用
+        verify(boardRepository, never()).findByIdAndUserId(any(), any());
+        verify(columnRepository, never()).findByBoardIdOrderBySortOrderAsc(any());
+        verify(jobCardRepository, never()).findByBoardIdAndDeletedAtIsNull(any());
+
+        // 验证 DtoConverter 未被调用（MyBatis 直接返回 DTO）
+        verify(dtoConverter, never()).toBoardDto(any());
+        verify(dtoConverter, never()).toColumnDtoList(any());
+        verify(dtoConverter, never()).toJobCardDtoList(any());
     }
 }

@@ -2,7 +2,6 @@ package com.example.myfirstspringboot.service.impl;
 
 import com.example.myfirstspringboot.Entity.Board;
 import com.example.myfirstspringboot.Entity.KanbanColumn;
-import com.example.myfirstspringboot.Entity.JobCard;
 import com.example.myfirstspringboot.dto.request.CreateBoardRequest;
 import com.example.myfirstspringboot.dto.request.LoadBoardRequest;
 import com.example.myfirstspringboot.dto.response.BoardDataDto;
@@ -19,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -38,7 +36,7 @@ public class BoardServiceImpl implements BoardService {
     // ========== 方法实现 ==========
 
     /**
-     * 创建看板
+     * 1、创建看板
      * @param userId 用户 ID
      * @param request 请求参数（包含看板名称）
      * @return 创建后的看板信息
@@ -69,7 +67,7 @@ public class BoardServiceImpl implements BoardService {
     }
 
     /**
-     * 加载看板完整数据
+     * 2、加载看板完整数据
      * @param userId 当前用户 ID
      * @param request 请求参数（包含可选的 boardId）
      * @return 看板完整数据（board + columns + cards）
@@ -77,40 +75,47 @@ public class BoardServiceImpl implements BoardService {
     @Override
     @Transactional(readOnly = true)  // 只读事务，性能优化
     public BoardDataDto loadBoard(String userId, LoadBoardRequest request) {
-
-        // ========== 步骤 1: 确定要加载哪个看板 ==========
         UUID boardId = request.getBoardId();
-        Board board;
 
         if (boardId == null) {
             // 场景 A: 没有指定 boardId，加载用户的第一个看板
-            board = loadUserFirstBoard(userId);
+            return loadBoardByMyBatis(userId, null);
         } else {
             // 场景 B: 指定了 boardId，加载该看板并校验权限
-            board = loadBoardAndValidatePermission(boardId, userId);
+            return loadBoardByMyBatis(userId, boardId);
+        }
+    }
+
+    /**
+     * 用于 2、加载看板完整数据
+     * 使用 MyBatis 联表查询加载看板数据
+     * @param userId 用户 ID
+     * @param boardId 看板 ID（可选，为空时加载用户第一个看板）
+     * @return 看板完整数据
+     */
+    private BoardDataDto loadBoardByMyBatis(String userId, UUID boardId) {
+        BoardDataDto result;
+
+        if (boardId == null) {
+            // 加载用户的第一个看板
+            result = boardMapper.findBoardDataByUserId(userId);
+        } else {
+            // 加载指定看板并校验权限
+            result = boardMapper.findBoardDataByBoardId(boardId, userId);
         }
 
         // 如果看板不存在，抛出异常
-        if (board == null) {
+        if (result == null || result.getBoard() == null) {
             throw new RuntimeException("看板不存在");
         }
 
-        // ========== 步骤 2: 查询该看板的所有列 ==========
-
-        List<KanbanColumn> columns = columnRepository.findByBoardIdOrderBySortOrderAsc(board.getId());
-
-        // ========== 步骤 3: 查询该看板的所有未删除卡片 ==========
-
-        List<JobCard> cards = jobCardRepository.findByBoardIdAndDeletedAtIsNull(board.getId());
-
-        // ========== 步骤 4: 组装 DTO 并返回 ==========
-
-        return assembleBoardDataDto(board, columns, cards);
+        return result;
     }
 
     // ========== 辅助方法 ==========
 
     /**
+     * 用于 1、创建看板
      * 为新建的看板创建默认的 5 个列
      * @param boardId 看板 ID
      */
@@ -135,57 +140,5 @@ public class BoardServiceImpl implements BoardService {
             // 保存到数据库
             columnRepository.save(column);
         }
-    }
-
-    /**
-     * 加载用户的第一个看板
-     * @param userId 用户 ID
-     * @return 用户的第一个看板（按创建时间升序）
-     */
-    private Board loadUserFirstBoard(String userId) {
-        List<Board> boards = boardRepository.findByUserIdOrderByCreatedAtAsc(userId);
-
-        // 如果用户没有任何看板，返回 null
-        if (boards == null || boards.isEmpty()) {
-            return null;
-        }
-
-        // 返回第一个看板
-        return boards.get(0);
-    }
-
-    /**
-     * 加载看板并校验权限
-     * @param boardId 看板 ID
-     * @param userId 用户 ID
-     * @return 看板实体
-     * @throws RuntimeException 如果看板不存在或不属于该用户
-     */
-    private Board loadBoardAndValidatePermission(UUID boardId, String userId) {
-        Optional<Board> boardOpt = boardRepository.findByIdAndUserId(boardId, userId);
-
-        // 如果看板不存在或不属于该用户，抛出异常
-        if (!boardOpt.isPresent()) {
-            throw new RuntimeException("看板不存在或无权访问");
-        }
-
-        return boardOpt.get();
-    }
-
-    /**
-     * 组装 BoardDataDto
-     * @param board 看板实体
-     * @param columns 列实体列表
-     * @param cards 卡片实体列表
-     * @return 完整的看板数据 DTO
-     */
-    private BoardDataDto assembleBoardDataDto(Board board,
-                                              List<KanbanColumn> columns,
-                                              List<JobCard> cards) {
-        BoardDataDto boardDataDto = new BoardDataDto();
-        boardDataDto.setBoard(dtoConverter.toBoardDto(board));
-        boardDataDto.setColumns(dtoConverter.toColumnDtoList(columns));
-        boardDataDto.setCards(dtoConverter.toJobCardDtoList(cards));
-        return boardDataDto;
     }
 }
