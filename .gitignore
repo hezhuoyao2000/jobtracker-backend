@@ -42,3 +42,4 @@ build/
 /.aiassistant/rules
 backup/
 postgres_data/
+/.claude

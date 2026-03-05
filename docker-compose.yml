@@ -12,4 +12,4 @@
         - "2015:5432"
       volumes:
         - ./postgres_data:/var/lib/postgresql/data # 数据持久化到本地文件夹
-#        - ./backup:/docker-entrypoint-initdb.d # 数据库初始化脚本目录，自动恢复备份
+        - ./backup:/docker-entrypoint-initdb.d # 数据库初始化脚本目录，自动恢复备份（仅在首次初始化时执行）
