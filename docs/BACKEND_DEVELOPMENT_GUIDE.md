@@ -63,9 +63,9 @@ myfirstspringboot/
 │   ├── MyfirstspringbootApplication.java
 │   ├── config/                    # 配置类
 │   │   └── MyBatisConfig.java
-│   ├── entity/                    # JPA 实体（对应数据库表）
+│   ├── Entity/                    # JPA 实体（对应数据库表）
 │   │   ├── Board.java
-│   │   ├── Column.java
+│   │   ├── KanbanColumn.java
 │   │   └── JobCard.java
 │   ├── dto/                       # 请求/响应 DTO
 │   │   ├── request/
@@ -80,311 +80,128 @@ myfirstspringboot/
 │   │       ├── ColumnDto.java
 │   │       ├── JobCardDto.java
 │   │       └── BoardDataDto.java
-│   ├── repository/                # 数据访问层
-│   │   ├── BoardRepository.java       # JPA
-│   │   ├── ColumnRepository.java      # JPA
-│   │   └── JobCardRepository.java     # JPA
-│   ├── mapper/                    # MyBatis Mapper（XML）
+│   ├── repository/                # 数据访问层（JPA Repository）
+│   │   ├── BoardRepository.java
+│   │   ├── KanbanColumnRepository.java
+│   │   └── JobCardRepository.java
+│   ├── mapper/                    # MyBatis Mapper 接口
 │   │   └── BoardMapper.java
-│   ├── service/                   # 业务逻辑层
+│   ├── service/                   # 业务逻辑层（接口定义）
 │   │   ├── BoardService.java
 │   │   ├── ColumnService.java
 │   │   └── JobCardService.java
+│   │   └── impl/                  # Service 实现类
+│   │       ├── BoardServiceImpl.java
+│   │       ├── ColumnServiceImpl.java
+│   │       └── JobCardServiceImpl.java
 │   ├── controller/                # 控制器
 │   │   └── BoardController.java
-│   └── exception/                 # 异常与统一响应
-│       ├── GlobalExceptionHandler.java
-│       └── ApiResponse.java
+│   ├── exception/                 # 异常与统一响应
+│   │   ├── GlobalExceptionHandler.java
+│   │   └── ApiResponse.java
+│   └── util/                      # 工具类
+│       └── DtoConverter.java
 ├── src/main/resources/
 │   ├── application.yml
 │   └── mapper/
 │       └── BoardMapper.xml
+├── src/test/
+│   └── java/com/example/myfirstspringboot/
+│       ├── MyfirstspringbootApplicationTests.java
+│       └── service/
+│           └── impl/
+│               └── BoardServiceImplTest.java
 └── pom.xml
 ```
+
+### 目录说明
+
+| 目录 | 说明 |
+|------|------|
+| `config/` | Spring 配置类，如 MyBatis 配置、JPA 配置等 |
+| `Entity/` | JPA 实体类，映射数据库表结构 |
+| `dto/` | 数据传输对象，分为 `request/` 和 `response/` |
+| `repository/` | JPA Repository 接口，负责单表 CRUD |
+| `mapper/` | MyBatis Mapper 接口，负责复杂 SQL 查询 |
+| `service/` | 业务逻辑层，接口定义在根目录，实现在 `impl/` 子目录 |
+| `controller/` | REST 控制器，处理 HTTP 请求 |
+| `exception/` | 全局异常处理和统一响应格式 |
+| `util/` | 工具类，如 DTO 转换器 |
+| `src/test/` | 单元测试目录，测试类与源码目录结构对应 |
 
 ---
 
 ## 四、数据库设计
 
-### 4.1 建表 SQL（PostgreSQL）
+完整的建表 SQL 和 Entity 设计代码已移至 [`DATABASE_SCHEMA.md`](./DATABASE_SCHEMA.md)，本文档仅保留字段功能说明。
 
-```sql
--- 看板表
-CREATE TABLE board (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id     VARCHAR(255) NOT NULL,
-    name        VARCHAR(255) NOT NULL DEFAULT 'My Job Tracker',
-    created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+### 4.1 表结构概览
 
-CREATE INDEX idx_board_user_id ON board(user_id);
-
--- 列表
-CREATE TABLE "kanban_column" (
-    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    board_id            UUID NOT NULL REFERENCES board(id) ON DELETE CASCADE,
-    name                VARCHAR(255) NOT NULL,
-    sort_order             INT NOT NULL DEFAULT 0,
-    is_default          BOOLEAN NOT NULL DEFAULT true,
-    custom_attributes   JSONB,
-    CONSTRAINT fk_column_board FOREIGN KEY (board_id) REFERENCES board(id)
-);
-
-CREATE INDEX idx_column_board_id ON "kanban_column"(board_id);
-
--- 职位卡片表
-CREATE TABLE job_card (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    board_id        UUID NOT NULL REFERENCES board(id) ON DELETE CASCADE,
-    status_id       UUID NOT NULL REFERENCES "kanban_column"(id),
-    job_title       VARCHAR(500) NOT NULL,
-    company_name    VARCHAR(255) NOT NULL,
-    job_link        VARCHAR(1000),
-    source_platform VARCHAR(100),
-    expired         BOOLEAN DEFAULT false,
-    job_location    VARCHAR(255),
-    description     TEXT,
-    applied_time    TIMESTAMP WITH TIME ZONE,
-    tags            TEXT[],
-    comments        TEXT,
-    extra           JSONB,
-    created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deleted_at      TIMESTAMP WITH TIME ZONE,
-    CONSTRAINT fk_job_card_board   FOREIGN KEY (board_id) REFERENCES board(id),
-    CONSTRAINT fk_job_card_status  FOREIGN KEY (status_id) REFERENCES "kanban_column"(id)
-);
-
-CREATE INDEX idx_job_card_board_id   ON job_card(board_id);
-CREATE INDEX idx_job_card_deleted_at ON job_card(deleted_at);
-```
+| 表名 | 说明 | 主键 | 主要字段 |
+|------|------|------|----------|
+| `board` | 看板主表 | `id` (UUID) | `user_id`, `name`, `created_at`, `updated_at` |
+| `kanban_column` | 看板列（状态列） | `id` (UUID) | `board_id`, `name`, `sort_order`, `is_default` |
+| `job_card` | 职位卡片 | `id` (UUID) | `board_id`, `status_id`, `job_title`, `company_name`, `deleted_at` |
 
 ### 4.2 字段说明
 
-| 表 | 字段                      | 说明                       |
-|----|-------------------------|--------------------------|
-| board | user_id                 | 归属用户（后续对应用户表）            |
-| board | created_at / updated_at | 由数据库或应用层维护               |
-| column | sort_order              | 列排序                      |
-| job_card | status_id               | 外键指向 column.id           |
-| job_card | deleted_at              | 软删除，NULL 表示未删除           |
-| job_card | tags                    | 数组类型，PostgreSQL 用 TEXT[] |
-| job_card | extra                   | JSON 类型，用 JSONB 存储       |
+| 表 | 字段 | 类型 | 说明 |
+|----|------|------|------|
+| board | `user_id` | VARCHAR(255) | 归属用户（后续对应用户表/JWT） |
+| board | `created_at` / `updated_at` | TIMESTAMP WITH TIME ZONE | 由数据库或应用层维护 |
+| board | `name` | VARCHAR(255) | 看板名称，默认值为 'My Job Tracker' |
+| kanban_column | `sort_order` | INT | 列排序顺序 |
+| kanban_column | `is_default` | BOOLEAN | 是否为系统默认列 |
+| kanban_column | `custom_attributes` | JSONB | 自定义属性（扩展用途） |
+| job_card | `status_id` | UUID | 外键指向 `kanban_column.id` |
+| job_card | `deleted_at` | TIMESTAMP WITH TIME ZONE | 软删除字段，NULL 表示未删除 |
+| job_card | `tags` | TEXT[] | 标签数组（PostgreSQL 特有类型） |
+| job_card | `extra` | JSONB | 扩展字段，存储任意 JSON 数据 |
+| job_card | `board_id` | UUID | 外键指向 `board.id` |
+
+### 4.3 外键关系
+
+```
+board (1) ──→ (N) kanban_column (board_id)
+board (1) ──→ (N) job_card (board_id)
+kanban_column (1) ──→ (N) job_card (status_id)
+```
+
+- `kanban_column.board_id` → `board.id` (ON DELETE CASCADE)
+- `job_card.board_id` → `board.id` (ON DELETE CASCADE)
+- `job_card.status_id` → `kanban_column.id`
+
+> 详细 SQL 建表语句请查看 [`DATABASE_SCHEMA.md`](./DATABASE_SCHEMA.md)
 
 ---
 
-## 五、Entity 设计（JPA）
+## 五、Entity 设计与 Repository 层
 
-### 5.1 Board
+完整的 Entity 设计和 Repository 接口定义请查看 [`DATABASE_SCHEMA.md`](./DATABASE_SCHEMA.md)。
 
-```java
-@Entity
-@Table(name = "board")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class Board {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+### 5.1 技术说明
 
-    @Column(name = "user_id", nullable = false)
-    private String userId;
+- **JPA Entity**: 使用 `@Entity` 注解映射数据库表，`@Table` 指定表名
+- **主键生成**: 使用 `GenerationType.UUID` 生成 UUID 类型主键
+- **时间戳**: 使用 `Instant` 类型，通过 `@PrePersist` 和 `@PreUpdate` 自动维护
+- **JSONB 支持**: 使用 `hibernate-types` 库的 `@Type(JsonBinaryType.class)`
+- **软删除**: 通过 `deleted_at` 字段实现，查询时需添加 `deletedAt IS NULL` 条件
 
-    @Column(nullable = false)
-    private String name;
+### 5.2 Repository 层说明
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+| Repository | 继承 | 主要方法 |
+|------------|------|----------|
+| `BoardRepository` | `JpaRepository<Board, UUID>` | `findByUserIdOrderByCreatedAtAsc`, `findByIdAndUserId` |
+| `KanbanColumnRepository` | `JpaRepository<KanbanColumn, UUID>` | `findByBoardIdOrderBySortOrderAsc`, `existsByIdAndBoardId` |
+| `JobCardRepository` | `JpaRepository<JobCard, UUID>` | `findByBoardIdAndDeletedAtIsNull`, `findByIdAndDeletedAtIsNull` |
 
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = Instant.now();
-        updatedAt = Instant.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
-    }
-}
-```
-
-### 5.2 Column
-
-```java
-@Entity
-@Table(name = "column")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class Column {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
-
-    @Column(name = "board_id", nullable = false)
-    private UUID boardId;
-
-    @Column(nullable = false)
-    private String name;
-
-    @Column(name = "sort_order", nullable = false)
-    private Integer sortOrder;
-
-    @Column(name = "is_default", nullable = false)
-    private Boolean isDefault;
-
-    @Type(JsonBinaryType.class)  // 需要依赖 hibernate-types
-    @Column(name = "custom_attributes", columnDefinition = "jsonb")
-    private Map<String, Object> customAttributes;
-}
-```
-
-### 5.3 JobCard
-
-```java
-@Entity
-@Table(name = "job_card")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class JobCard {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
-
-    @Column(name = "board_id", nullable = false)
-    private UUID boardId;
-
-    @Column(name = "status_id", nullable = false)
-    private UUID statusId;
-
-    @Column(name = "job_title", nullable = false)
-    private String jobTitle;
-
-    @Column(name = "company_name", nullable = false)
-    private String companyName;
-
-    @Column(name = "job_link")
-    private String jobLink;
-
-    @Column(name = "source_platform")
-    private String sourcePlatform;
-
-    private Boolean expired;
-
-    @Column(name = "job_location")
-    private String jobLocation;
-
-    @Column(columnDefinition = "TEXT")
-    private String description;
-
-    @Column(name = "applied_time")
-    private Instant appliedTime;
-
-    @Type(JsonBinaryType.class)
-    @Column(columnDefinition = "text[]")  // 或使用 @Convert
-    private List<String> tags;
-
-    @Column(columnDefinition = "TEXT")
-    private String comments;
-
-    @Type(JsonBinaryType.class)
-    @Column(columnDefinition = "jsonb")
-    private Map<String, Object> extra;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
-
-    @Column(name = "deleted_at")
-    private Instant deletedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = Instant.now();
-        updatedAt = Instant.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
-    }
-}
-```
-
-> 说明：`JsonBinaryType` 来自 `io.hypersistence:hibernate-types`；`tags` 若用 `TEXT[]` 需额外配置 TypeHandler，新手可先用 `@Column(columnDefinition = "TEXT")` 存 JSON 字符串，再手动解析。
+> **注意**: Entity 类名使用 `KanbanColumn` 而非 `Column`，避免与 JPA 保留字冲突。
 
 ---
 
-## 六、Repository 层
+## 六、Service 层业务逻辑
 
-### 6.1 JPA Repository
-
-```java
-// BoardRepository.java
-public interface BoardRepository extends JpaRepository<Board, UUID> {
-    List<Board> findByUserIdOrderByCreatedAtAsc(String userId);
-    Optional<Board> findByIdAndUserId(UUID id, String userId);
-}
-
-// ColumnRepository.java
-public interface ColumnRepository extends JpaRepository<Column, UUID> {
-    List<Column> findByBoardIdOrderByOrderAsc(UUID boardId);
-    boolean existsByIdAndBoardId(UUID columnId, UUID boardId);
-}
-
-// JobCardRepository.java
-public interface JobCardRepository extends JpaRepository<JobCard, UUID> {
-    List<JobCard> findByBoardIdAndDeletedAtIsNull(UUID boardId);
-    Optional<JobCard> findByIdAndDeletedAtIsNull(UUID id);
-}
-```
-
-### 6.2 MyBatis Mapper（加载完整 BoardData）
-
-```java
-// BoardMapper.java
-@Mapper
-public interface BoardMapper {
-    BoardDataResult findBoardDataByUserId(@Param("userId") String userId);
-    BoardDataResult findBoardDataByBoardId(@Param("boardId") UUID boardId, @Param("userId") String userId);
-}
-```
-
-```xml
-<!-- BoardMapper.xml -->
-<resultMap id="BoardDataMap" type="com.example.myfirstspringboot.dto.response.BoardDataResult">
-    <association property="board" resultMap="BoardMap"/>
-    <collection property="columns" resultMap="ColumnMap"/>
-    <collection property="cards" resultMap="JobCardMap"/>
-</resultMap>
-
-<select id="findBoardDataByUserId" resultMap="BoardDataMap">
-    SELECT b.*, c.*, j.*
-    FROM board b
-    LEFT JOIN "column" c ON c.board_id = b.id
-    LEFT JOIN job_card j ON j.board_id = b.id AND j.deleted_at IS NULL
-    WHERE b.user_id = #{userId}
-    ORDER BY b.created_at ASC, c."order" ASC
-    LIMIT 1
-</select>
-```
-
-> 联表结果需在 Service 中重组为 `BoardDataDto`，或定义 `BoardDataResult` 配合 MyBatis 嵌套映射。新手可先用 3 次 JPA 查询（board → columns → cards）实现，再尝试 MyBatis 联表。
-
----
-
-## 七、Service 层业务逻辑
-
-### 7.1 加载看板（LoadBoard）
+### 6.1 加载看板（LoadBoard）
 
 ```
 输入：userId（JWT）、可选 boardId
@@ -395,7 +212,7 @@ public interface BoardMapper {
 5. 组装 BoardDataDto 返回
 ```
 
-### 7.2 创建看板（CreateBoard）
+### 6.2 创建看板（CreateBoard）
 
 ```
 输入：name、userId
@@ -405,7 +222,7 @@ public interface BoardMapper {
 4. 返回 BoardDto
 ```
 
-### 7.3 创建卡片（CreateCard）
+### 6.3 创建卡片（CreateCard）
 
 ```
 输入：CreateCardRequest、userId
@@ -416,7 +233,7 @@ public interface BoardMapper {
 5. 返回 JobCardDto
 ```
 
-### 7.4 更新卡片（UpdateCard）
+### 6.4 更新卡片（UpdateCard）
 
 ```
 输入：UpdateCardRequest、userId
@@ -427,7 +244,7 @@ public interface BoardMapper {
 5. 返回 JobCardDto
 ```
 
-### 7.5 移动卡片（MoveCard）
+### 6.5 移动卡片（MoveCard）
 
 ```
 输入：cardId、targetStatusId、userId
@@ -438,7 +255,7 @@ public interface BoardMapper {
 5. 返回 JobCardDto
 ```
 
-### 7.6 软删除卡片（DeleteCard）
+### 6.6 软删除卡片（DeleteCard）
 
 ```
 输入：cardId、userId
@@ -448,7 +265,7 @@ public interface BoardMapper {
 4. 返回成功
 ```
 
-### 7.7 更新列（UpdateColumn）
+### 6.7 更新列（UpdateColumn）
 
 ```
 输入：UpdateColumnRequest、userId
@@ -460,7 +277,7 @@ public interface BoardMapper {
 
 ---
 
-## 八、Controller 接口定义
+## 七、Controller 接口定义
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -505,14 +322,14 @@ public class BoardController {
 
 ---
 
-## 九、DTO 与日期格式
+## 八、DTO 与日期格式
 
-### 9.1 约定
+### 8.1 约定
 
 - 请求/响应中的日期字段使用 **ISO 8601 字符串**（如 `2026-02-20T10:30:00Z`）
 - Entity 内部使用 `Instant`，在 Service 或 Mapper 中转换为字符串
 
-### 9.2 转换示例
+### 8.2 转换示例
 
 ```java
 // Entity → dto
@@ -533,7 +350,7 @@ public static JobCardDto toDto(JobCard entity) {
 
 ---
 
-## 十、依赖配置（pom.xml 片段）
+## 九、依赖配置（pom.xml 片段）
 
 ```xml
 <dependencies>
@@ -570,7 +387,7 @@ public static JobCardDto toDto(JobCard entity) {
 
 ---
 
-## 十一、application.yml 示例
+## 十、application.yml 示例
 
 ```yaml
 spring:
@@ -598,7 +415,7 @@ mybatis:
 
 ---
 
-## 十二、开发顺序建议
+## 十一、开发顺序建议
 
 1. **建库建表** → 执行建表 SQL
 2. **Entity** → Board、Column、JobCard
@@ -610,7 +427,7 @@ mybatis:
 
 ---
 
-## 十三、与前端类型对照
+## 十二、与前端类型对照
 
 前端类型定义见：`src/app/services/types/backendtypes/backend.ts`  
 后端 DTO 字段名、类型应与该文件保持一致，便于联调。
@@ -628,7 +445,7 @@ mybatis:
 
 ---
 
-## 十四、常见问题
+## 十三、常见问题
 
 1. **PostgreSQL 中 `order` 为保留字**：建表、写 SQL 时用双引号 `"order"`
 2. **UUID 类型**：Java 用 `java.util.UUID`，数据库用 `UUID`

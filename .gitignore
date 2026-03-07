@@ -35,7 +35,6 @@ build/
 /.env.kimi
 /.env.qwenplan
 /.env.qwen
-/AGENTS.md
 /plan.md
 /start-claude.bat
 /.aiassistant/rules

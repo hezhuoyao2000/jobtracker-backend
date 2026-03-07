@@ -1,0 +1,72 @@
+---
+description: IntelliJ IDEA 环境下 Spring Boot 开发规则与最佳实践
+globs: "**/*.java"
+alwaysApply: true
+---
+
+# Spring Boot 开发规则（IntelliJ IDEA 环境）
+
+## 通用代码风格
+- 类名、接口名、枚举名使用 **PascalCase**（大驼峰），如 `UserService`、`OrderStatus`。
+- 方法名、变量名、参数名使用 **camelCase**（小驼峰），如 `getUserById`、`userName`。
+- 常量使用 **SCREAMING_SNAKE_CASE**，如 `MAX_RETRY_COUNT`。
+- 包名全小写，使用反向域名风格，如 `com.kiwihubprice.user`。
+- 局部变量优先使用 `var`（Java 10+）当类型从右侧明显可见时，如 `var user = userService.findById(id)`。
+- 私有字段不使用下划线前缀，直接使用 `camelCase`。
+
+## 异步与并发
+- I/O 操作（数据库、HTTP 调用、消息队列）使用 `@Async` 或 `CompletableFuture`。
+- 避免在异步方法中阻塞等待，禁止 `future.get()` 无超时参数。
+- 使用 `CompletableFuture` 组合异步任务时，始终指定自定义线程池，避免共用 `ForkJoinPool.commonPool()`。
+
+## 架构与分层
+- **Controller 层**：仅处理 HTTP 请求映射、参数校验、响应封装，禁止包含业务逻辑。
+- **Service 层**：承载业务逻辑，使用接口+实现类模式（`UserService` + `UserServiceImpl`）。
+- **Repository/Mapper 层**：数据访问，优先使用 Spring Data JPA 或 MyBatis-Plus。
+- **Domain 层**：实体、值对象、领域服务，保持与框架无关。
+- 依赖注入使用 **构造器注入**，配合 Lombok `@RequiredArgsConstructor`，禁止字段注入。
+
+## 代码复用与现有组件
+- 新增功能前检查现有基础设施：
+    - 全局异常处理：待定
+    - 统一响应封装：待定
+    - 日志切面：待定
+    - 权限校验：待定
+- 禁止重复造轮子，优先扩展现有组件。
+
+## 异常处理，待定
+- 业务异常继承 `RuntimeException`，使用 `BusinessException` 统一封装。
+- 错误码使用枚举管理，如 `ErrorCode.USER_NOT_FOUND(1001, "用户不存在")`。
+- Controller 层禁止捕获异常，统一交由 `@ControllerAdvice` 处理。
+- 日志记录异常时，使用 `log.error("操作失败, userId={}", userId, e)` 保留堆栈。
+
+## 数据操作
+- 优先使用 Stream API 替代传统 for 循环处理集合。
+- 数据库查询返回实体列表时，使用 `List&lt;&gt;` 而非 `Collection&lt;&gt;` 明确语义。
+- 分页查询统一使用 `Page&lt;T&gt;` 或自定义 `PageResult`。
+- 批量操作考虑使用 JDBC Batch 或 MyBatis 批量插入。
+
+## 开发工具与工作流
+- **HTTP 测试**：使用 IDEA 自带的 `.http` 文件（`src/test/resources/http/` 或 `src/http/`）。
+    - 命名规范：`模块名_功能.http`，如 `user_create.http`。
+    - 使用环境变量管理不同环境地址：`{{host}}`、`{{token}}`。
+- **命令行**：Windows 使用 PowerShell，macOS 使用 Terminal（zsh）。
+- **构建工具**：使用 Maven Wrapper（`./mvnw` 或 `mvnw.cmd`），禁止直接调用系统 mvn。
+
+- **IDE 配置**：统一代码格式化配置，使用 `.editorconfig` 和 IDEA 代码风格导出。
+
+## 配置文件
+- `application.yml` 为主配置，`application-{profile}.yml` 为环境配置。
+- 敏感信息（密码、密钥）使用环境变量或配置中心（Nacos/Apollo），禁止硬编码。
+- 使用 `@ConfigurationProperties` 绑定配置到 POJO，替代 `@Value` 分散注入。
+
+## 测试规范
+- 单元测试使用 JUnit 5 + Mockito，命名 `被测方法名_场景_预期结果`。
+- 集成测试使用 `@SpringBootTest`，配合 `@Testcontainers` 启动真实数据库。
+- HTTP 接口测试优先使用 IDEA HTTP 文件，复杂场景使用 RestAssured。
+
+## 安全与性能
+- 接口响应时间超过 500ms 必须添加缓存或异步优化。
+- 用户输入使用 `jakarta.validation` 注解校验（`@NotBlank`、`@Size` 等）。
+- SQL 注入防护：使用参数化查询，禁止字符串拼接 SQL。
+- 敏感数据脱敏：日志中手机号、身份证号显示为 `138****8888`。
