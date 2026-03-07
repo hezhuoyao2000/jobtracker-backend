@@ -3,8 +3,8 @@ spring:
     name: myfirstspringboot
   datasource:
     url: jdbc:postgresql://localhost:2015/mysite_dev
-    username: hezhuoyao
-    password: hzythebest1  # 启动时通过 -DDB_PASSWORD=你的密码 传入
+    username: postgres
+    password: hzythebest1
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -21,3 +21,20 @@ mybatis:
   type-aliases-package: com.example.myfirstspringboot.entity
   configuration:
     map-underscore-to-camel-case: true
+
+# SpringDoc OpenAPI 配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui/index.html
+    operationsSorter: method
+    tagsSorter: alpha
+    defaultModelsExpandDepth: 1
+  api-docs:
+    path: /v3/api-docs
+
+# 应用配置
+app:
+  # 启动时自动打开浏览器（true=启用，false=禁用）
+  auto-open-browser: true
+  # Swagger UI 路径
+  swagger-path: /swagger-ui/index.html

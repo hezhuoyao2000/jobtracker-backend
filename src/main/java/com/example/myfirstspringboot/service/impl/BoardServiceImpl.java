@@ -1,12 +1,12 @@
 package com.example.myfirstspringboot.service.impl;
 
 import com.example.myfirstspringboot.Entity.Board;
+import com.example.myfirstspringboot.Entity.JobCard;
 import com.example.myfirstspringboot.Entity.KanbanColumn;
 import com.example.myfirstspringboot.dto.request.CreateBoardRequest;
 import com.example.myfirstspringboot.dto.request.LoadBoardRequest;
 import com.example.myfirstspringboot.dto.response.BoardDataDto;
 import com.example.myfirstspringboot.dto.response.BoardDto;
-import com.example.myfirstspringboot.mapper.BoardMapper;
 import com.example.myfirstspringboot.repository.BoardRepository;
 import com.example.myfirstspringboot.repository.JobCardRepository;
 import com.example.myfirstspringboot.repository.KanbanColumnRepository;
@@ -30,7 +30,6 @@ public class BoardServiceImpl implements BoardService {
     private final BoardRepository boardRepository;
     private final KanbanColumnRepository columnRepository;
     private final JobCardRepository jobCardRepository;
-    private final BoardMapper boardMapper;
     private final DtoConverter dtoConverter;
 
     // ========== 方法实现 ==========
@@ -77,39 +76,25 @@ public class BoardServiceImpl implements BoardService {
     public BoardDataDto loadBoard(String userId, LoadBoardRequest request) {
         UUID boardId = request.getBoardId();
 
+        Board board;
         if (boardId == null) {
             // 场景 A: 没有指定 boardId，加载用户的第一个看板
-            return loadBoardByMyBatis(userId, null);
+            board = boardRepository.findFirstByUserIdOrderByCreatedAtAsc(userId)
+                    .orElseThrow(() -> new RuntimeException("没有找到该用户的看板"));
         } else {
             // 场景 B: 指定了 boardId，加载该看板并校验权限
-            return loadBoardByMyBatis(userId, boardId);
-        }
-    }
-
-    /**
-     * 用于 2、加载看板完整数据
-     * 使用 MyBatis 联表查询加载看板数据
-     * @param userId 用户 ID
-     * @param boardId 看板 ID（可选，为空时加载用户第一个看板）
-     * @return 看板完整数据
-     */
-    private BoardDataDto loadBoardByMyBatis(String userId, UUID boardId) {
-        BoardDataDto result;
-
-        if (boardId == null) {
-            // 加载用户的第一个看板
-            result = boardMapper.findBoardDataByUserId(userId);
-        } else {
-            // 加载指定看板并校验权限
-            result = boardMapper.findBoardDataByBoardId(boardId, userId);
+            board = boardRepository.findByIdAndUserId(boardId, userId)
+                    .orElseThrow(() -> new RuntimeException("看板不存在或不属于该用户"));
         }
 
-        // 如果看板不存在，抛出异常
-        if (result == null || result.getBoard() == null) {
-            throw new RuntimeException("看板不存在");
-        }
+        // 查询该看板的所有列（按 sortOrder 排序）
+        List<KanbanColumn> columns = columnRepository.findByBoardIdOrderBySortOrderAsc(board.getId());
 
-        return result;
+        // 查询该看板的所有卡片（未删除的）
+        List<JobCard> cards = jobCardRepository.findByBoardIdAndDeletedAtIsNull(board.getId());
+
+        // 组装 BoardDataDto 并返回
+        return dtoConverter.toBoardDataDto(board, columns, cards);
     }
 
     // ========== 辅助方法 ==========

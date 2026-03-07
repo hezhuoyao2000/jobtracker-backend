@@ -14,4 +14,5 @@ public class MyBatisConfig {
 
     // MyBatis 配置已在 application.yaml 中完成
     // 此类主要用于扩展配置（如需要）
+    // UuidTypeHandler 已使用 @MappedTypes 注解，会自动注册
 }

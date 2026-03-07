@@ -21,6 +21,15 @@ mvnw.cmd test -Dtest=BoardServiceImplTest
 mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-DDB_PASSWORD=your_password"
 ```
 
+## API 文档
+
+启动应用后，可通过以下链接访问 API 文档：
+
+- **Swagger UI**: http://localhost:8080/swagger-ui/index.html
+- **API Docs (JSON)**: http://localhost:8080/v3/api-docs
+
+应用启动后会自动打开浏览器访问 Swagger UI 文档页面（可通过 `app.auto-open-browser=false` 禁用）。
+
 ## Architecture Overview
 
 ### Tech Stack

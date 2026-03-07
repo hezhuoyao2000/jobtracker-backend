@@ -11,7 +11,7 @@
 
     <!-- BoardDto 映射 -->
     <resultMap id="BoardMap" type="com.example.myfirstspringboot.dto.response.BoardDto">
-        <id property="id" column="board_id"/>
+        <id property="id" column="board_id" javaType="java.util.UUID" typeHandler="com.example.myfirstspringboot.config.UuidTypeHandler"/>
         <result property="userId" column="user_id"/>
         <result property="name" column="board_name"/>
         <result property="createdAt" column="board_created_at"/>
@@ -20,20 +20,19 @@
 
     <!-- ColumnDto 映射 -->
     <resultMap id="ColumnMap" type="com.example.myfirstspringboot.dto.response.ColumnDto">
-        <id property="id" column="column_id"/>
-        <result property="boardId" column="column_board_id"/>
+        <id property="id" column="column_id" javaType="java.util.UUID" typeHandler="com.example.myfirstspringboot.config.UuidTypeHandler"/>
+        <result property="boardId" column="column_board_id" javaType="java.util.UUID" typeHandler="com.example.myfirstspringboot.config.UuidTypeHandler"/>
         <result property="name" column="column_name"/>
         <result property="sortOrder" column="sort_order"/>
         <result property="isDefault" column="is_default"/>
-        <result property="customAttributes" column="custom_attributes" 
-                typeHandler="org.apache.ibatis.type.JdbcTypeOTHER"/>
+        <result property="customAttributes" column="custom_attributes" javaType="java.util.Map" typeHandler="com.example.myfirstspringboot.config.JsonbTypeHandler"/>
     </resultMap>
 
     <!-- JobCardDto 映射 -->
     <resultMap id="JobCardMap" type="com.example.myfirstspringboot.dto.response.JobCardDto">
-        <id property="id" column="card_id"/>
-        <result property="boardId" column="card_board_id"/>
-        <result property="statusId" column="status_id"/>
+        <id property="id" column="card_id" javaType="java.util.UUID" typeHandler="com.example.myfirstspringboot.config.UuidTypeHandler"/>
+        <result property="boardId" column="card_board_id" javaType="java.util.UUID" typeHandler="com.example.myfirstspringboot.config.UuidTypeHandler"/>
+        <result property="statusId" column="status_id" javaType="java.util.UUID" typeHandler="com.example.myfirstspringboot.config.UuidTypeHandler"/>
         <result property="jobTitle" column="job_title"/>
         <result property="companyName" column="company_name"/>
         <result property="jobLink" column="job_link"/>
@@ -42,9 +41,9 @@
         <result property="jobLocation" column="job_location"/>
         <result property="description" column="description"/>
         <result property="appliedTime" column="applied_time"/>
-        <result property="tags" column="tags" typeHandler="org.apache.ibatis.type.JdbcTypeOTHER"/>
+        <result property="tags" column="tags" javaType="java.util.List" typeHandler="com.example.myfirstspringboot.config.StringArrayTypeHandler"/>
         <result property="comments" column="comments"/>
-        <result property="extra" column="extra" typeHandler="org.apache.ibatis.type.JdbcTypeOTHER"/>
+        <result property="extra" column="extra" javaType="java.util.Map" typeHandler="com.example.myfirstspringboot.config.JsonbTypeHandler"/>
         <result property="createdAt" column="card_created_at"/>
         <result property="updatedAt" column="card_updated_at"/>
     </resultMap>

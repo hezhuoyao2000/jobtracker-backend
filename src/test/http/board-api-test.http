@@ -1,0 +1,116 @@
+### 看板 API 测试文件
+### 使用说明：
+### 1. IntelliJ IDEA：直接点击行首的 ▶ 运行按钮
+### 2. VS Code：安装 REST Client 插件后点击 Send Request
+### 3. 变量说明：{{baseUrl}} 和 {{boardId}} 可在下方定义，或从响应中捕获
+
+### 配置变量（可选）
+# @baseUrl = http://localhost:8080
+
+### ============================================================
+### 1. 创建看板
+### ============================================================
+POST http://localhost:8080/board/create
+Content-Type: application/json
+
+{
+  "name": "My Job Tracker"
+}
+
+### 创建看板（不传名称，使用默认）
+POST http://localhost:8080/board/create
+Content-Type: application/json
+
+{}
+
+### ============================================================
+### 2. 加载看板数据
+### ============================================================
+
+### 2.1 加载用户的第一个看板（不传 boardId）
+POST http://localhost:8080/board/load
+Content-Type: application/json
+
+{}
+
+### 2.2 加载指定看板（需要替换 UUID 为实际 boardId）
+# 提示：从上面的创建看板响应中复制 id 字段替换下方的 UUID
+POST http://localhost:8080/board/load
+Content-Type: application/json
+
+{
+  "boardId": "550e8400-e29b-41d4-a716-446655440000"
+}
+
+### ============================================================
+### 测试步骤建议
+### ============================================================
+
+### 步骤 1：创建一个看板
+# 运行第一个 "创建看板" 请求
+# 复制响应中的 id 字段（类似 xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
+
+### 步骤 2：加载看板数据
+# 运行 "加载用户的第一个看板"（不需要 boardId）
+# 或使用步骤 1 复制的 id 运行 "加载指定看板"
+
+### 预期响应结构：
+### {
+###   "code": 200,
+###   "message": "success",
+###   "data": {
+###     "board": { "id": "...", "name": "...", ... },
+###     "columns": [ { "id": "...", "name": "Wish list", ... }, ... ],
+###     "cards": []
+###   }
+### }
+
+### ============================================================
+### 后续接口（待实现）
+### ============================================================
+
+### 3. 创建卡片
+# POST http://localhost:8080/board/card/create
+# Content-Type: application/json
+#
+# {
+#   "boardId": "替换为实际boardId",
+#   "statusId": "替换为实际columnId",
+#   "jobTitle": "高级 Java 开发工程师",
+#   "companyName": "阿里巴巴"
+# }
+
+### 4. 更新卡片
+# POST http://localhost:8080/board/card/update
+# Content-Type: application/json
+#
+# {
+#   "cardId": "替换为实际cardId",
+#   "jobTitle": "更新后的职位名称"
+# }
+
+### 5. 移动卡片
+# POST http://localhost:8080/board/card/move
+# Content-Type: application/json
+#
+# {
+#   "cardId": "替换为实际cardId",
+#   "targetStatusId": "替换为目标columnId"
+# }
+
+### 6. 删除卡片（软删除）
+# POST http://localhost:8080/board/card/delete
+# Content-Type: application/json
+#
+# {
+#   "cardId": "替换为实际cardId"
+# }
+
+### 7. 更新列
+# POST http://localhost:8080/board/column/update
+# Content-Type: application/json
+#
+# {
+#   "columnId": "替换为实际columnId",
+#   "name": "新的列名称"
+# }

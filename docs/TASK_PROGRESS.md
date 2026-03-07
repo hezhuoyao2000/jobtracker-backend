@@ -47,7 +47,7 @@
 | 2.1.1 | BoardService 接口 | ✅ | 已创建 |
 | 2.1.2 | BoardServiceImpl 实现 | ✅ | createBoard(), loadBoard() 已完成 |
 | 2.1.3 | BoardService 单元测试 | ✅ | 10 个测试用例已编写 |
-| 2.1.4 | BoardController | ⏳ | 待创建 |
+| 2.1.4 | BoardController | ✅ | 已完成，含详细 JavaDoc 和 API 文档 |
 
 #### 2.2 Column 相关
 
@@ -71,8 +71,8 @@
 
 | 功能 | 状态 | 说明 |
 |------|------|------|
-| 创建看板 | ✅ | Service + 测试完成 |
-| 加载看板 | ✅ | Service + 测试完成 |
+| 创建看板 | ✅ | Service + Controller 完成 |
+| 加载看板 | ✅ | Service + Controller 完成 |
 | 创建列 | ⏳ | 默认列创建已实现，独立接口待开发 |
 | 更新列 | ⏳ | 待开发 |
 | 创建卡片 | ⏳ | 待开发 |
@@ -80,24 +80,29 @@
 | 移动卡片 | ⏳ | 待开发 |
 | 删除卡片（软删除） | ⏳ | 待开发 |
 
+**API 文档：**
+- [x] BoardController 接口文档 (`docs/API_BOARD_CONTROLLER.md`)
+
 ---
 
-### 阶段 3：接口与权限（第 6-7 天）⏳
+### 阶段 3：接口与权限（第 6-7 天）🔄
 
 | 序号 | 任务 | 状态 | 备注 |
 |------|------|------|------|
-| 3.1 | BoardController | ⏳ | 待创建 |
+| 3.1 | BoardController | ✅ | 已完成，包含详细 JavaDoc |
 | 3.2 | 统一响应格式 ApiResponse | ✅ | 已创建 |
 | 3.3 | 全局异常处理 GlobalExceptionHandler | ⏳ | 待创建 |
-| 3.4 | REST 接口完整实现 | ⏳ | 待开发 |
-| 3.5 | JWT 预留（userId 写死测试） | ⏳ | 待开发 |
+| 3.4 | REST 接口完整实现 | 🔄 | 进行中 |
+| 3.5 | JWT 预留（userId 写死测试） | ✅ | 已在 Controller 中预留 TODO |
+| 3.6 | Swagger/OpenAPI 文档 | ✅ | SpringDoc 集成完成，含 DTO 注解 |
+| 3.7 | 启动自动打开浏览器 | ✅ | 自动打开 Swagger UI |
 
-**待实现接口列表：**
+**接口实现状态：**
 
 | 方法 | 路径 | 说明 | 状态 |
 |------|------|------|------|
-| POST | /board/load | 加载看板完整数据 | ⏳ |
-| POST | /board/create | 创建看板 | ⏳ |
+| POST | /board/load | 加载看板完整数据 | ✅ |
+| POST | /board/create | 创建看板 | ✅ |
 | POST | /board/card/create | 新建卡片 | ⏳ |
 | POST | /board/card/update | 更新卡片 | ⏳ |
 | POST | /board/card/move | 移动卡片 | ⏳ |
@@ -135,6 +140,24 @@
 | 自定义异常类 | 低 | ⏳ | 目前使用 RuntimeException，可创建业务异常类 |
 | 日志记录 | 低 | ⏳ | 添加 SLF4J 日志记录 |
 | 参数校验 | 中 | ⏳ | 添加 @Valid 注解进行请求参数校验 |
+
+---
+
+## 文档清单
+
+| 文档 | 说明 |
+|------|------|
+| `docs/BACKEND_DEVELOPMENT_GUIDE.md` | 后端开发指南（API定义） |
+| `docs/DATABASE_SCHEMA.md` | 数据库表结构 |
+| `docs/TASK_PROGRESS.md` | 本文件，任务进度表 |
+| `docs/API_BOARD_CONTROLLER.md` | BoardController 接口文档 |
+| `docs/API_TESTING_GUIDE.md` | API 测试指南（新增） |
+
+### HTTP 测试文件
+
+| 文件 | 说明 |
+|------|------|
+| `src/test/http/board-api-test.http` | 看板接口 HTTP 测试文件（新增） |
 
 ---
 
@@ -176,7 +199,9 @@ src/main/java/com/example/myfirstspringboot/
 ├── util/
 │   └── DtoConverter.java ✅
 └── config/
-    └── MyBatisConfig.java ✅
+    ├── MyBatisConfig.java ✅
+    ├── OpenApiConfig.java ✅
+    └── BrowserLauncher.java ✅
 ```
 
 ### 测试文件
@@ -185,6 +210,13 @@ src/main/java/com/example/myfirstspringboot/
 src/test/java/com/example/myfirstspringboot/
 └── service/impl/
     └── BoardServiceImplTest.java ✅
+```
+
+### HTTP 测试文件
+
+```
+src/test/http/
+└── board-api-test.http ✅
 ```
 
 ---

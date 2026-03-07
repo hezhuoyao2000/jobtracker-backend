@@ -3,6 +3,7 @@ package com.example.myfirstspringboot.util;
 import com.example.myfirstspringboot.Entity.Board;
 import com.example.myfirstspringboot.Entity.KanbanColumn;
 import com.example.myfirstspringboot.Entity.JobCard;
+import com.example.myfirstspringboot.dto.response.BoardDataDto;
 import com.example.myfirstspringboot.dto.response.BoardDto;
 import com.example.myfirstspringboot.dto.response.ColumnDto;
 import com.example.myfirstspringboot.dto.response.JobCardDto;
@@ -97,5 +98,19 @@ public class DtoConverter {
 
     public List<JobCardDto> toJobCardDtoList(List<JobCard> jobCards) {
         return jobCards.stream().map(this::toJobCardDto).collect(Collectors.toList());
+    }
+
+    /**
+     * 组装 BoardDataDto（board + columns + cards）
+     */
+    public BoardDataDto toBoardDataDto(Board board, List<KanbanColumn> columns, List<JobCard> jobCards) {
+        if (board == null) {
+            return null;
+        }
+        BoardDataDto dto = new BoardDataDto();
+        dto.setBoard(toBoardDto(board));
+        dto.setColumns(toColumnDtoList(columns));
+        dto.setCards(toJobCardDtoList(jobCards));
+        return dto;
     }
 }

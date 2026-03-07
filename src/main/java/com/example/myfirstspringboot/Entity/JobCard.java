@@ -3,6 +3,7 @@ package com.example.myfirstspringboot.Entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Type;
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 
 import java.time.Instant;
 import java.util.List;
@@ -54,7 +55,12 @@ public class JobCard {
     @Column(columnDefinition = "TEXT")
     private String comments;
 
+    /**
+     * 扩展字段，存储为 PostgreSQL JSONB 类型
+     * 用于存储任意额外的职位信息
+     */
     @Column(columnDefinition = "jsonb")
+    @Type(JsonBinaryType.class)
     private Map<String, Object> extra;
 
     @Column(name = "created_at", nullable = false, updatable = false)

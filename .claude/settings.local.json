@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(docker exec:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(./mvnw.cmd spring-boot:run:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)"
     ]
   }
 }
