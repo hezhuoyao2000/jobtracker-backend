@@ -2,10 +2,7 @@ package com.example.myfirstspringboot.Entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.Type;
-import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -35,11 +32,10 @@ public class KanbanColumn {
     private Boolean isDefault;
 
     /**
-     * 自定义属性，存储为 PostgreSQL JSONB 类型
-     * 用于扩展列的额外信息
+     * 自定义属性，以 JSON 字符串存储（简化处理）
+     * 如需复杂操作可在 Service 层序列化/反序列化
      */
-    @Column(name = "custom_attributes", columnDefinition = "jsonb")
-    @Type(JsonBinaryType.class)
-    private Map<String, Object> customAttributes;
+    @Column(name = "custom_attributes", columnDefinition = "TEXT")
+    private String customAttributes;
 
 }

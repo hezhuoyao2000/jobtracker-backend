@@ -5,7 +5,10 @@
       "WebSearch",
       "Bash(./mvnw.cmd spring-boot:run:*)",
       "Bash(curl:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(./mvnw.cmd test:*)",
+      "Bash(./mvnw.cmd clean:*)",
+      "Bash(ls:*)"
     ]
   }
 }

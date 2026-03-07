@@ -67,20 +67,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- MyBatis 依赖 -->
-        <dependency>
-            <groupId>org.mybatis.spring.boot</groupId>
-            <artifactId>mybatis-spring-boot-starter</artifactId>
-            <version>3.0.3</version>
-        </dependency>
-
-        <!-- hibernate-types 用于 JSONB 类型处理 -->
-        <dependency>
-            <groupId>io.hypersistence</groupId>
-            <artifactId>hypersistence-utils-hibernate-63</artifactId>
-            <version>3.7.0</version>
-        </dependency>
-
         <!-- SpringDoc OpenAPI 文档支持 -->
         <dependency>
             <groupId>org.springdoc</groupId>

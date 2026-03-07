@@ -16,14 +16,14 @@
 | 技术 | 用途 |
 |------|------|
 | Spring Boot | 应用框架 |
-| Spring Data JPA | 简单 CRUD、实体映射、Repository |
-| MyBatis | 复杂查询、联表、自定义 SQL（练习手写） |
+| Spring Data JPA | 数据访问、实体映射、Repository |
 | PostgreSQL | 关系型数据库 |
+| SpringDoc OpenAPI | API 文档（Swagger UI） |
 | JWT | 用户认证（后续接入） |
 
-**JPA 与 MyBatis 分工建议**：
-- **JPA**：单表 CRUD、按 id/boardId 查询、简单关联
-- **MyBatis**：加载完整 BoardData（board + columns + cards）、联表查询、批量操作
+**数据访问策略**：
+- 纯 JPA 方案：所有数据访问通过 Spring Data JPA Repository
+- 复杂查询通过多次 Repository 调用 + Service 层组装
 
 ---
 
@@ -84,8 +84,7 @@ myfirstspringboot/
 │   │   ├── BoardRepository.java
 │   │   ├── KanbanColumnRepository.java
 │   │   └── JobCardRepository.java
-│   ├── mapper/                    # MyBatis Mapper 接口
-│   │   └── BoardMapper.java
+│   ├── mapper/                    # (已移除 - 使用纯 JPA)
 │   ├── service/                   # 业务逻辑层（接口定义）
 │   │   ├── BoardService.java
 │   │   ├── ColumnService.java
@@ -205,11 +204,11 @@ kanban_column (1) ──→ (N) job_card (status_id)
 
 ```
 输入：userId（JWT）、可选 boardId
-1. 若 boardId 为空：取该用户第一个 board
-2. 若 boardId 不为空：校验 board 属于 userId
-3. 查 columns：WHERE board_id = ?
-4. 查 cards：WHERE board_id = ? AND deleted_at IS NULL
-5. 组装 BoardDataDto 返回
+1. 若 boardId 为空：取该用户第一个 board（JPA Repository）
+2. 若 boardId 不为空：校验 board 属于 userId（JPA Repository）
+3. 查 columns：JPA Repository 查询
+4. 查 cards：JPA Repository 查询（过滤 deleted_at IS NULL）
+5. DtoConverter 组装 BoardDataDto 返回
 ```
 
 ### 6.2 创建看板（CreateBoard）
@@ -363,24 +362,20 @@ public static JobCardDto toDto(JobCard entity) {
         <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
     <dependency>
-        <groupId>org.mybatis.spring.boot</groupId>
-        <artifactId>mybatis-spring-boot-starter</artifactId>
-        <version>3.0.3</version>
-    </dependency>
-    <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
         <scope>runtime</scope>
     </dependency>
     <dependency>
-        <groupId>io.hypersistence</groupId>
-        <artifactId>hypersistence-utils-hibernate-63</artifactId>
-        <version>3.7.0</version>
-    </dependency>
-    <dependency>
         <groupId>org.projectlombok</groupId>
         <artifactId>lombok</artifactId>
         <optional>true</optional>
+    </dependency>
+    <!-- SpringDoc OpenAPI 文档支持 -->
+    <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>2.6.0</version>
     </dependency>
 </dependencies>
 ```
@@ -398,19 +393,12 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate  # 开发可用 update，生产用 validate
+      ddl-auto: none  # 数据库表已手动创建，禁用自动 schema 管理
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         default_schema: public
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-
-mybatis:
-  mapper-locations: classpath:mapper/**/*.xml
-  type-aliases-package: com.example.myfirstspringboot.entity
-  configuration:
-    map-underscore-to-camel-case: true
 ```
 
 ---
@@ -418,12 +406,11 @@ mybatis:
 ## 十一、开发顺序建议
 
 1. **建库建表** → 执行建表 SQL
-2. **Entity** → Board、Column、JobCard
-3. **Repository** → 先用 JPA 实现基础查询
+2. **Entity** → Board、Column、JobCard（简化类型处理）
+3. **Repository** → JPA Repository 接口
 4. **Service** → 实现 LoadBoard、CreateBoard、CreateCard
-5. **Controller** → 暴露接口，用 Postman 测试
+5. **Controller** → 暴露接口，用 Swagger UI 测试
 6. **完善** → 其余接口、异常处理、统一响应
-7. **MyBatis** → 可选：用 MyBatis 重写 LoadBoard 联表查询
 
 ---
 
@@ -448,6 +435,9 @@ mybatis:
 ## 十三、常见问题
 
 1. **PostgreSQL 中 `order` 为保留字**：建表、写 SQL 时用双引号 `"order"`
-2. **UUID 类型**：Java 用 `java.util.UUID`，数据库用 `UUID`
-3. **JSONB / 数组**：可用 `hibernate-types` 或自定义 `AttributeConverter`
+2. **UUID 类型**：Java 用 `java.util.UUID`，数据库用 `UUID`，JPA 自动处理类型映射
+3. **JSONB / 数组字段**：
+   - 简化方案：Java 中用 `String` 存储，数据库用 `jsonb`/`text[]`
+   - 如需复杂操作，在 Service 层用 Jackson 序列化/反序列化
 4. **软删除**：查询时统一加 `deleted_at IS NULL` 条件
+5. **Schema 验证失败**：如果数据库字段类型与 JPA 实体不匹配，将 `ddl-auto` 设为 `none`

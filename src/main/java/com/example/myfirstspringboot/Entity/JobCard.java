@@ -2,12 +2,8 @@ package com.example.myfirstspringboot.Entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.Type;
-import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -49,19 +45,18 @@ public class JobCard {
     @Column(name = "applied_time")
     private Instant appliedTime;
 
-    @Column(columnDefinition = "text[]")
-    private List<String> tags;
+    @Column(name = "tags", length = 500)
+    private String tags;
 
     @Column(columnDefinition = "TEXT")
     private String comments;
 
     /**
-     * 扩展字段，存储为 PostgreSQL JSONB 类型
-     * 用于存储任意额外的职位信息
+     * 扩展字段，以 JSON 字符串存储（简化处理）
+     * 如需复杂操作可在 Service 层序列化/反序列化
      */
-    @Column(columnDefinition = "jsonb")
-    @Type(JsonBinaryType.class)
-    private Map<String, Object> extra;
+    @Column(name = "extra", columnDefinition = "TEXT")
+    private String extra;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

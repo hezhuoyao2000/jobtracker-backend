@@ -169,8 +169,8 @@
 src/main/java/com/example/myfirstspringboot/
 ├── Entity/
 │   ├── Board.java ✅
-│   ├── KanbanColumn.java ✅
-│   └── JobCard.java ✅
+│   ├── KanbanColumn.java ✅ (已简化，customAttributes 改为 String)
+│   └── JobCard.java ✅ (已简化，tags/extra 改为 String)
 ├── repository/
 │   ├── BoardRepository.java ✅
 │   ├── KanbanColumnRepository.java ✅
@@ -185,23 +185,30 @@ src/main/java/com/example/myfirstspringboot/
 │   └── UpdateColumnRequest.java ✅
 ├── dto/response/
 │   ├── BoardDto.java ✅
-│   ├── ColumnDto.java ✅
-│   ├── JobCardDto.java ✅
+│   ├── ColumnDto.java ✅ (已简化，customAttributes 改为 String)
+│   ├── JobCardDto.java ✅ (已简化，tags/extra 改为 String)
 │   └── BoardDataDto.java ✅
-├── mapper/
-│   ├── BoardMapper.java ✅
-│   └── BoardMapper.xml ✅
 ├── service/
 │   ├── BoardService.java ✅
-│   └── impl/BoardServiceImpl.java ✅
+│   └── impl/BoardServiceImpl.java ✅ (纯 JPA 方案)
 ├── exception/
 │   └── ApiResponse.java ✅
 ├── util/
 │   └── DtoConverter.java ✅
 └── config/
-    ├── MyBatisConfig.java ✅
     ├── OpenApiConfig.java ✅
     └── BrowserLauncher.java ✅
+```
+
+### 已删除文件（MyBatis 相关）
+
+```
+❌ config/MyBatisConfig.java
+❌ config/JsonbTypeHandler.java
+❌ config/StringArrayTypeHandler.java
+❌ config/UuidTypeHandler.java
+❌ mapper/BoardMapper.java
+❌ mapper/BoardMapper.xml
 ```
 
 ### 测试文件

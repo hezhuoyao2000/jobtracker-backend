@@ -2,7 +2,6 @@ package com.example.myfirstspringboot.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -27,6 +26,6 @@ public class ColumnDto {
     @Schema(description = "是否为系统默认列", example = "true")
     private Boolean isDefault;
 
-    @Schema(description = "自定义属性")
-    private Map<String, Object> customAttributes;
+    @Schema(description = "自定义属性，JSON 字符串")
+    private String customAttributes;
 }

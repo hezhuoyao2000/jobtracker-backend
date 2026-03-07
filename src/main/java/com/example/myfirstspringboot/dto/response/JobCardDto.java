@@ -2,8 +2,6 @@ package com.example.myfirstspringboot.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -46,14 +44,14 @@ public class JobCardDto {
     @Schema(description = "申请时间", example = "2026-03-01T10:30:00Z")
     private String appliedTime;
 
-    @Schema(description = "标签列表", example = "[\"急招\", \"大厂\", \"高薪\"]")
-    private List<String> tags;
+    @Schema(description = "标签，逗号分隔", example = "急招,大厂,高薪")
+    private String tags;
 
     @Schema(description = "备注")
     private String comments;
 
-    @Schema(description = "扩展字段")
-    private Map<String, Object> extra;
+    @Schema(description = "扩展字段，JSON 字符串")
+    private String extra;
 
     @Schema(description = "创建时间", example = "2026-03-01T10:30:00Z")
     private String createdAt;
