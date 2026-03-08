@@ -9,7 +9,9 @@
       "Bash(./mvnw.cmd test:*)",
       "Bash(./mvnw.cmd clean:*)",
       "Bash(ls:*)",
-      "Bash(mvnw.cmd test:*)"
+      "Bash(mvnw.cmd test:*)",
+      "Bash(./mvnw compile:*)",
+      "Bash(./mvnw test:*)"
     ]
   }
 }

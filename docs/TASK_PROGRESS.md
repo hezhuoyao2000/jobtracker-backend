@@ -66,14 +66,14 @@
 | 3 | ColumnController | ✅ | /board/column/update |
 | 4 | 接口测试 | ✅ | HTTP 测试 + Swagger 验证 |
 
-#### 迭代 3：JobCard 模块 ⏳
+#### 迭代 3：JobCard 模块 🔄（当前迭代）
 
 | 步骤 | 任务 | 状态 | 备注 |
 |------|------|------|------|
-| 1 | JobCardService 接口 + 实现 | ⏳ | createCard(), updateCard(), moveCard(), deleteCard() |
-| 2 | JobCardService 单元测试 | ⏳ | 正常流程 + 异常场景 |
-| 3 | JobCardController | ⏳ | /board/card/* 接口 |
-| 4 | 接口测试 | ⏳ | HTTP 测试 + Swagger 验证 |
+| 1 | JobCardService 接口 + 实现 | ✅ | createCard(), updateCard(), moveCard(), deleteCard() |
+| 2 | JobCardService 单元测试 | ✅ | 14 个测试用例 |
+| 3 | JobCardController | ✅ | /board/card/* 接口 |
+| 4 | 接口测试 | ✅ | HTTP 测试 + Swagger 验证 |
 
 #### 功能完成度
 
@@ -82,10 +82,10 @@
 | 创建看板 | ✅ | Service + Controller + 测试 完成 |
 | 加载看板 | ✅ | Service + Controller + 测试 完成 |
 | 更新列 | ✅ | 迭代 2 完成 |
-| 创建卡片 | 🔄 | 迭代 3 进行中 |
-| 更新卡片 | ⏳ | 迭代 3 待开始 |
-| 移动卡片 | ⏳ | 迭代 3 待开始 |
-| 软删除卡片 | ⏳ | 迭代 3 待开始 |
+| 创建卡片 | ✅ | 迭代 3 完成 |
+| 更新卡片 | ✅ | 迭代 3 完成 |
+| 移动卡片 | ✅ | 迭代 3 完成 |
+| 软删除卡片 | ✅ | 迭代 3 完成 |
 
 **API 文档：**
 - [x] BoardController 接口文档 (`docs/API_BOARD_CONTROLLER.md`)
@@ -112,10 +112,10 @@
 | POST | /board/load | 加载看板完整数据 | ✅ | 迭代 1 |
 | POST | /board/create | 创建看板 | ✅ | 迭代 1 |
 | POST | /board/column/update | 更新列 | ✅ | 迭代 2 |
-| POST | /board/card/create | 新建卡片 | ⏳ | 迭代 3 |
-| POST | /board/card/update | 更新卡片 | ⏳ | 迭代 3 |
-| POST | /board/card/move | 移动卡片 | ⏳ | 迭代 3 |
-| POST | /board/card/delete | 软删除卡片 | ⏳ | 迭代 3 |
+| POST | /board/card/create | 新建卡片 | ✅ | 迭代 3 |
+| POST | /board/card/update | 更新卡片 | ✅ | 迭代 3 |
+| POST | /board/card/move | 移动卡片 | ✅ | 迭代 3 |
+| POST | /board/card/delete | 软删除卡片 | ✅ | 迭代 3 |
 
 ---
 
@@ -131,24 +131,24 @@
 
 ## 当前工作焦点
 
-**当前迭代：** 迭代 3 - JobCard 模块 🔄
+**当前迭代：** 阶段 3 - 接口完善 🔄
 
 **开发流程：**
 ```
-JobCardService (接口+实现)
-    → JobCardServiceImplTest (单元测试)
-    → JobCardController (Controller)
-    → HTTP测试/Swagger验证
-    → 完成迭代 3
+全局异常处理 GlobalExceptionHandler
+    → 参数校验 @Valid
+    → 自定义异常类
+    → 日志记录 SLF4J
+    → 完成阶段 3
 ```
 
 **当前步骤：**
-1. ⏳ JobCardService 接口 + 实现（createCard/updateCard/moveCard/deleteCard）
-2. ⏳ JobCardServiceImplTest 单元测试
-3. ⏳ JobCardController 开发（/board/card/*）
-4. ⏳ 接口测试验证
+1. ⏳ 全局异常处理 GlobalExceptionHandler
+2. ⏳ 参数校验 @Valid
+3. ⏳ 自定义异常类（可选）
+4. ⏳ 日志记录
 
-**下一步迭代：** 阶段 3 - 接口完善（全局异常处理、参数校验）
+**下一步迭代：** 阶段 4 - JWT 认证与联调
 
 ---
 
@@ -211,12 +211,15 @@ src/main/java/com/example/myfirstspringboot/
 ├── service/
 │   ├── BoardService.java ✅
 │   ├── ColumnService.java ✅ (迭代 2)
+│   ├── JobCardService.java ✅ (迭代 3)
 │   └── impl/
 │       ├── BoardServiceImpl.java ✅ (纯 JPA 方案)
-│       └── ColumnServiceImpl.java ✅ (迭代 2)
+│       ├── ColumnServiceImpl.java ✅ (迭代 2)
+│       └── JobCardServiceImpl.java ✅ (迭代 3)
 ├── controller/
 │   ├── BoardController.java ✅
-│   └── ColumnController.java ✅ (迭代 2)
+│   ├── ColumnController.java ✅ (迭代 2)
+│   └── JobCardController.java ✅ (迭代 3)
 ├── exception/
 │   └── ApiResponse.java ✅
 ├── util/
@@ -243,7 +246,8 @@ src/main/java/com/example/myfirstspringboot/
 src/test/java/com/example/myfirstspringboot/
 └── service/impl/
     ├── BoardServiceImplTest.java ✅
-    └── ColumnServiceImplTest.java ✅ (迭代 2，11 个测试用例)
+    ├── ColumnServiceImplTest.java ✅ (迭代 2，11 个测试用例)
+    └── JobCardServiceImplTest.java ✅ (迭代 3，14 个测试用例)
 ```
 
 ### HTTP 测试文件
@@ -261,8 +265,8 @@ src/test/http/
 |--------|----------|------|
 | 基础架构搭建完成 | 第 2 天末 | ✅ 已完成 |
 | 迭代 1：Board 模块 | 第 3 天末 | ✅ 已完成 |
-| 迭代 2：Column 模块 | 第 4 天末 | 🔄 进行中 |
-| 迭代 3：JobCard 模块 | 第 5 天末 | ⏳ |
+| 迭代 2：Column 模块 | 第 4 天末 | ✅ 已完成 |
+| 迭代 3：JobCard 模块 | 第 5 天末 | ✅ 已完成 |
 | 接口完善（异常处理/校验） | 第 6 天末 | ⏳ |
 | JWT 认证完成 | 第 8 天末 | ⏳ |
 | 前端联调完成 | 第 10 天末 | ⏳ |

@@ -53,11 +53,27 @@ Content-Type: application/json
 ### 步骤 2：加载看板数据
 # 运行 "加载用户的第一个看板"（不需要 boardId）
 # 或使用步骤 1 复制的 id 运行 "加载指定看板"
-# 复制响应中的 columns[0].id（列 ID）用于步骤 3
+# 复制响应中的：
+#   - board.id（看板 ID）
+#   - columns[0].id（列 ID，用于创建卡片）
+#   - columns[1].id（另一列 ID，用于移动卡片）
 
 ### 步骤 3：更新列
 # 使用步骤 2 复制的 columnId 运行 "更新列名称" 请求
 # 验证响应中的 name 字段已更新
+
+### 步骤 4：创建卡片
+# 使用步骤 2 复制的 boardId 和 columnId 运行 "创建卡片" 请求
+# 复制响应中的 id 字段（卡片 ID）
+
+### 步骤 5：更新卡片
+# 使用步骤 4 复制的 cardId 运行 "更新卡片" 请求
+
+### 步骤 6：移动卡片
+# 使用步骤 4 复制的 cardId 和步骤 2 复制的另一列 ID 运行 "移动卡片"
+
+### 步骤 7：删除卡片
+# 使用 cardId 运行 "删除卡片"
 
 ### 预期响应结构（加载看板）：
 ### {
@@ -66,7 +82,7 @@ Content-Type: application/json
 ###   "data": {
 ###     "board": { "id": "...", "name": "...", ... },
 ###     "columns": [ { "id": "...", "name": "Wish list", ... }, ... ],
-###     "cards": []
+###     "cards": [ { "id": "...", "jobTitle": "...", ... }, ... ]
 ###   }
 ### }
 
@@ -106,42 +122,57 @@ Content-Type: application/json
 }
 
 ### ============================================================
-### 后续接口（待实现 - JobCard 模块）
+### 4. 卡片管理（迭代 3）
 ### ============================================================
 
-### 4. 创建卡片
-# POST http://localhost:8080/board/card/create
-# Content-Type: application/json
-#
-# {
-#   "boardId": "替换为实际boardId",
-#   "statusId": "替换为实际columnId",
-#   "jobTitle": "高级 Java 开发工程师",
-#   "companyName": "阿里巴巴"
-# }
+### 4.1 创建卡片
+### 提示：从加载看板响应中复制 board.id 和 columns[0].id 替换下方 UUID
+POST http://localhost:8080/board/card/create
+Content-Type: application/json
 
-### 5. 更新卡片
-# POST http://localhost:8080/board/card/update
-# Content-Type: application/json
-#
-# {
-#   "cardId": "替换为实际cardId",
-#   "jobTitle": "更新后的职位名称"
-# }
+{
+  "boardId": "550e8400-e29b-41d4-a716-446655440000",
+  "statusId": "550e8400-e29b-41d4-a716-446655440001",
+  "jobTitle": "高级 Java 开发工程师",
+  "companyName": "阿里巴巴",
+  "jobLink": "https://jobs.alibaba.com/123",
+  "sourcePlatform": "LinkedIn",
+  "jobLocation": "杭州",
+  "description": "5年以上 Java 开发经验，熟悉 Spring Boot",
+  "tags": ["Java", "Spring Boot", "微服务"],
+  "comments": "薪资待遇不错，值得尝试",
+  "extra": {
+    "salary": "30-50K",
+    "level": "P6"
+  }
+}
 
-### 6. 移动卡片
-# POST http://localhost:8080/board/card/move
-# Content-Type: application/json
-#
-# {
-#   "cardId": "替换为实际cardId",
-#   "targetStatusId": "替换为目标columnId"
-# }
+### 4.2 更新卡片
+### 提示：从创建卡片响应中复制 id 字段替换下方 UUID
+POST http://localhost:8080/board/card/update
+Content-Type: application/json
 
-### 7. 删除卡片（软删除）
-# POST http://localhost:8080/board/card/delete
-# Content-Type: application/json
-#
-# {
-#   "cardId": "替换为实际cardId"
-# }
+{
+  "cardId": "550e8400-e29b-41d4-a716-446655440002",
+  "jobTitle": "资深 Java 架构师（已更新）",
+  "companyName": "阿里巴巴集团",
+  "description": "更新后的职位描述"
+}
+
+### 4.3 移动卡片（变更状态列）
+### 提示：将卡片从当前列移动到其他列
+POST http://localhost:8080/board/card/move
+Content-Type: application/json
+
+{
+  "cardId": "550e8400-e29b-41d4-a716-446655440002",
+  "targetStatusId": "550e8400-e29b-41d4-a716-446655440002"
+}
+
+### 4.4 删除卡片（软删除）
+POST http://localhost:8080/board/card/delete
+Content-Type: application/json
+
+{
+  "cardId": "550e8400-e29b-41d4-a716-446655440002"
+}
