@@ -1,17 +1,35 @@
-### 看板 API 测试文件
+### 看板 API 测试文件（JWT 认证版）
 ### 使用说明：
 ### 1. IntelliJ IDEA：直接点击行首的 ▶ 运行按钮
 ### 2. VS Code：安装 REST Client 插件后点击 Send Request
-### 3. 变量说明：{{baseUrl}} 和 {{boardId}} 可在下方定义，或从响应中捕获
+### 3. 所有请求需要先在 Header 中提供有效的 JWT Token
 
-### 配置变量（可选）
-# @baseUrl = http://localhost:8080
+### ============================================================
+### 0. 登录获取 JWT Token（必须先执行）
+### ============================================================
+
+### 登录接口 - 获取 Token
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "userId": "user-1"
+}
+
+### 登录成功后，从响应中复制 token 字段，填入下方 @token 变量
+### 或使用 REST Client 的环境变量功能
+
+### ============================================================
+### 变量配置（复制 token 到这里）
+### ============================================================
+# @token = eyJhbGciOiJIUzI1NiJ9...（从登录响应中复制完整的 token）
 
 ### ============================================================
 ### 1. 创建看板
 ### ============================================================
 POST http://localhost:8080/board/create
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "name": "My Job Tracker"
@@ -20,6 +38,7 @@ Content-Type: application/json
 ### 创建看板（不传名称，使用默认）
 POST http://localhost:8080/board/create
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {}
 
@@ -30,6 +49,7 @@ Content-Type: application/json
 ### 2.1 加载用户的第一个看板（不传 boardId）
 POST http://localhost:8080/board/load
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {}
 
@@ -37,54 +57,11 @@ Content-Type: application/json
 # 提示：从上面的创建看板响应中复制 id 字段替换下方的 UUID
 POST http://localhost:8080/board/load
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "boardId": "550e8400-e29b-41d4-a716-446655440000"
 }
-
-### ============================================================
-### 测试步骤建议
-### ============================================================
-
-### 步骤 1：创建一个看板
-# 运行第一个 "创建看板" 请求
-# 复制响应中的 id 字段（类似 xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
-
-### 步骤 2：加载看板数据
-# 运行 "加载用户的第一个看板"（不需要 boardId）
-# 或使用步骤 1 复制的 id 运行 "加载指定看板"
-# 复制响应中的：
-#   - board.id（看板 ID）
-#   - columns[0].id（列 ID，用于创建卡片）
-#   - columns[1].id（另一列 ID，用于移动卡片）
-
-### 步骤 3：更新列
-# 使用步骤 2 复制的 columnId 运行 "更新列名称" 请求
-# 验证响应中的 name 字段已更新
-
-### 步骤 4：创建卡片
-# 使用步骤 2 复制的 boardId 和 columnId 运行 "创建卡片" 请求
-# 复制响应中的 id 字段（卡片 ID）
-
-### 步骤 5：更新卡片
-# 使用步骤 4 复制的 cardId 运行 "更新卡片" 请求
-
-### 步骤 6：移动卡片
-# 使用步骤 4 复制的 cardId 和步骤 2 复制的另一列 ID 运行 "移动卡片"
-
-### 步骤 7：删除卡片
-# 使用 cardId 运行 "删除卡片"
-
-### 预期响应结构（加载看板）：
-### {
-###   "code": 200,
-###   "message": "success",
-###   "data": {
-###     "board": { "id": "...", "name": "...", ... },
-###     "columns": [ { "id": "...", "name": "Wish list", ... }, ... ],
-###     "cards": [ { "id": "...", "jobTitle": "...", ... }, ... ]
-###   }
-### }
 
 ### ============================================================
 ### 3. 更新列
@@ -94,6 +71,7 @@ Content-Type: application/json
 ### 提示：从加载看板响应中复制 columns[0].id 替换下方的 UUID
 POST http://localhost:8080/board/column/update
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "columnId": "550e8400-e29b-41d4-a716-446655440001",
@@ -103,6 +81,7 @@ Content-Type: application/json
 ### 3.2 更新列排序顺序
 POST http://localhost:8080/board/column/update
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "columnId": "550e8400-e29b-41d4-a716-446655440001",
@@ -112,6 +91,7 @@ Content-Type: application/json
 ### 3.3 更新列自定义属性
 POST http://localhost:8080/board/column/update
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "columnId": "550e8400-e29b-41d4-a716-446655440001",
@@ -122,13 +102,14 @@ Content-Type: application/json
 }
 
 ### ============================================================
-### 4. 卡片管理（迭代 3）
+### 4. 卡片管理
 ### ============================================================
 
 ### 4.1 创建卡片
 ### 提示：从加载看板响应中复制 board.id 和 columns[0].id 替换下方 UUID
 POST http://localhost:8080/board/card/create
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "boardId": "550e8400-e29b-41d4-a716-446655440000",
@@ -151,6 +132,7 @@ Content-Type: application/json
 ### 提示：从创建卡片响应中复制 id 字段替换下方 UUID
 POST http://localhost:8080/board/card/update
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "cardId": "550e8400-e29b-41d4-a716-446655440002",
@@ -163,6 +145,7 @@ Content-Type: application/json
 ### 提示：将卡片从当前列移动到其他列
 POST http://localhost:8080/board/card/move
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "cardId": "550e8400-e29b-41d4-a716-446655440002",
@@ -172,7 +155,64 @@ Content-Type: application/json
 ### 4.4 删除卡片（软删除）
 POST http://localhost:8080/board/card/delete
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "cardId": "550e8400-e29b-41d4-a716-446655440002"
 }
+
+### ============================================================
+### 测试步骤建议
+### ============================================================
+
+### 步骤 1：登录获取 Token
+# 运行 "登录接口" 请求
+# 复制响应中的 token 字段
+
+### 步骤 2：配置 Token
+# 将复制的 token 填入上方 @token 变量，或设置环境变量
+
+### 步骤 3：创建一个看板
+# 运行 "创建看板" 请求
+# 复制响应中的 id 字段（类似 xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
+
+### 步骤 4：加载看板数据
+# 运行 "加载用户的第一个看板"
+# 复制响应中的：
+#   - board.id（看板 ID）
+#   - columns[0].id（列 ID，用于创建卡片）
+#   - columns[1].id（另一列 ID，用于移动卡片）
+
+### 步骤 5：更新列
+# 使用步骤 4 复制的 columnId 运行 "更新列名称" 请求
+
+### 步骤 6：创建卡片
+# 使用步骤 4 复制的 boardId 和 columnId 运行 "创建卡片" 请求
+# 复制响应中的 id 字段（卡片 ID）
+
+### 步骤 7：更新卡片
+# 使用步骤 6 复制的 cardId 运行 "更新卡片" 请求
+
+### 步骤 8：移动卡片
+# 使用步骤 6 复制的 cardId 和步骤 4 复制的另一列 ID 运行 "移动卡片"
+
+### 步骤 9：删除卡片
+# 使用 cardId 运行 "删除卡片"
+
+### 预期响应结构（登录成功）：
+### {
+###   "code": 200,
+###   "message": "success",
+###   "data": {
+###     "userId": "user-1",
+###     "token": "eyJhbGciOiJIUzI1NiJ9...",
+###     "tokenType": "Bearer"
+###   }
+### }
+
+### 预期响应结构（Token 无效）：
+### {
+###   "code": 401,
+###   "message": "未提供有效的认证令牌",
+###   "data": null
+### }

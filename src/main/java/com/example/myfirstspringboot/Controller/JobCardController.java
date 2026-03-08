@@ -6,6 +6,7 @@ import com.example.myfirstspringboot.dto.request.MoveCardRequest;
 import com.example.myfirstspringboot.dto.request.UpdateCardRequest;
 import com.example.myfirstspringboot.dto.response.JobCardDto;
 import com.example.myfirstspringboot.exception.ApiResponse;
+import com.example.myfirstspringboot.exception.UnauthorizedException;
 import com.example.myfirstspringboot.service.JobCardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,6 +37,17 @@ public class JobCardController {
     private final JobCardService jobCardService;
 
     /**
+     * 从请求中获取当前用户 ID
+     */
+    private String getCurrentUserId(HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        if (userId == null) {
+            throw new UnauthorizedException("未登录或登录已过期");
+        }
+        return userId;
+    }
+
+    /**
      * 创建卡片
      * <p>
      * 接口说明：
@@ -43,15 +56,14 @@ public class JobCardController {
      * - tags 和 extra 字段为可选
      * </p>
      *
-     * @param request 请求参数
-     *                - boardId: 必填，看板 ID
-     *                - statusId: 必填，列 ID（卡片初始状态）
-     *                - jobTitle: 必填，职位名称
-     *                - companyName: 必填，公司名称
-     *                - 其他字段可选
+     * @param request     请求参数
+     *                    - boardId: 必填，看板 ID
+     *                    - statusId: 必填，列 ID（卡片初始状态）
+     *                    - jobTitle: 必填，职位名称
+     *                    - companyName: 必填，公司名称
+     *                    - 其他字段可选
+     * @param httpRequest HTTP 请求（用于获取当前用户 ID）
      * @return 创建后的卡片信息
-     *
-     * @apiNote 当前 userId 写死为 "user-1"，后续从 JWT Token 中提取
      */
     @Operation(
             summary = "创建卡片",
@@ -67,9 +79,9 @@ public class JobCardController {
     @PostMapping("/create")
     public ApiResponse<JobCardDto> createCard(
             @Parameter(description = "创建卡片请求参数", required = true)
-            @RequestBody CreateCardRequest request) {
-        String userId = "user-1";
-
+            @RequestBody CreateCardRequest request,
+            HttpServletRequest httpRequest) {
+        String userId = getCurrentUserId(httpRequest);
         JobCardDto cardDto = jobCardService.createCard(userId, request);
         return ApiResponse.success(cardDto);
     }
@@ -83,12 +95,11 @@ public class JobCardController {
      * - 支持更新 statusId 来移动卡片到其他列
      * </p>
      *
-     * @param request 请求参数
-     *                - cardId: 必填，卡片 ID
-     *                - 其他字段可选
+     * @param request     请求参数
+     *                    - cardId: 必填，卡片 ID
+     *                    - 其他字段可选
+     * @param httpRequest HTTP 请求（用于获取当前用户 ID）
      * @return 更新后的卡片信息
-     *
-     * @apiNote 当前 userId 写死为 "user-1"，后续从 JWT Token 中提取
      */
     @Operation(
             summary = "更新卡片",
@@ -104,9 +115,9 @@ public class JobCardController {
     @PostMapping("/update")
     public ApiResponse<JobCardDto> updateCard(
             @Parameter(description = "更新卡片请求参数", required = true)
-            @RequestBody UpdateCardRequest request) {
-        String userId = "user-1";
-
+            @RequestBody UpdateCardRequest request,
+            HttpServletRequest httpRequest) {
+        String userId = getCurrentUserId(httpRequest);
         JobCardDto cardDto = jobCardService.updateCard(userId, request);
         return ApiResponse.success(cardDto);
     }
@@ -119,12 +130,11 @@ public class JobCardController {
      * - 会校验目标列是否属于同一看板
      * </p>
      *
-     * @param request 请求参数
-     *                - cardId: 必填，卡片 ID
-     *                - targetStatusId: 必填，目标列 ID
+     * @param request     请求参数
+     *                    - cardId: 必填，卡片 ID
+     *                    - targetStatusId: 必填，目标列 ID
+     * @param httpRequest HTTP 请求（用于获取当前用户 ID）
      * @return 移动后的卡片信息
-     *
-     * @apiNote 当前 userId 写死为 "user-1"，后续从 JWT Token 中提取
      */
     @Operation(
             summary = "移动卡片",
@@ -139,9 +149,9 @@ public class JobCardController {
     @PostMapping("/move")
     public ApiResponse<JobCardDto> moveCard(
             @Parameter(description = "移动卡片请求参数", required = true)
-            @RequestBody MoveCardRequest request) {
-        String userId = "user-1";
-
+            @RequestBody MoveCardRequest request,
+            HttpServletRequest httpRequest) {
+        String userId = getCurrentUserId(httpRequest);
         JobCardDto cardDto = jobCardService.moveCard(userId, request);
         return ApiResponse.success(cardDto);
     }
@@ -154,11 +164,10 @@ public class JobCardController {
      * - 删除后的卡片不会出现在加载看板接口的响应中
      * </p>
      *
-     * @param request 请求参数
-     *                - cardId: 必填，卡片 ID
+     * @param request     请求参数
+     *                    - cardId: 必填，卡片 ID
+     * @param httpRequest HTTP 请求（用于获取当前用户 ID）
      * @return 成功响应
-     *
-     * @apiNote 当前 userId 写死为 "user-1"，后续从 JWT Token 中提取
      */
     @Operation(
             summary = "删除卡片",
@@ -172,9 +181,9 @@ public class JobCardController {
     @PostMapping("/delete")
     public ApiResponse<Void> deleteCard(
             @Parameter(description = "删除卡片请求参数", required = true)
-            @RequestBody DeleteCardRequest request) {
-        String userId = "user-1";
-
+            @RequestBody DeleteCardRequest request,
+            HttpServletRequest httpRequest) {
+        String userId = getCurrentUserId(httpRequest);
         jobCardService.deleteCard(userId, request);
         return ApiResponse.success(null);
     }

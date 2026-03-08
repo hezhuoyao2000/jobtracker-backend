@@ -11,7 +11,14 @@
       "Bash(ls:*)",
       "Bash(mvnw.cmd test:*)",
       "Bash(./mvnw compile:*)",
-      "Bash(./mvnw test:*)"
+      "Bash(./mvnw test:*)",
+      "Bash(./mvnw clean:*)",
+      "Bash(mvnw.cmd spring-boot:run:*)",
+      "Bash(./mvnw spring-boot:run:*)",
+      "Bash(tasklist:*)",
+      "Bash(taskkill:*)",
+      "Bash(wmic process:*)",
+      "Bash(__NEW_LINE_ce5c6635138b2448__ curl:*)"
     ]
   }
 }

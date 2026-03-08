@@ -3,6 +3,7 @@ package com.example.myfirstspringboot.Controller;
 import com.example.myfirstspringboot.dto.request.UpdateColumnRequest;
 import com.example.myfirstspringboot.dto.response.ColumnDto;
 import com.example.myfirstspringboot.exception.ApiResponse;
+import com.example.myfirstspringboot.exception.UnauthorizedException;
 import com.example.myfirstspringboot.service.ColumnService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +33,17 @@ public class ColumnController {
     private final ColumnService columnService;
 
     /**
+     * 从请求中获取当前用户 ID
+     */
+    private String getCurrentUserId(HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        if (userId == null) {
+            throw new UnauthorizedException("未登录或登录已过期");
+        }
+        return userId;
+    }
+
+    /**
      * 更新列信息
      * <p>
      * 接口说明：
@@ -39,14 +52,13 @@ public class ColumnController {
      * - 会自动校验列所属的看板是否属于当前用户
      * </p>
      *
-     * @param request 请求参数
-     *                - columnId: 必填，列 ID（UUID 格式）
-     *                - name: 可选，列名称
-     *                - sortOrder: 可选，排序顺序
-     *                - customAttributes: 可选，自定义属性（JSON 对象）
+     * @param request     请求参数
+     *                    - columnId: 必填，列 ID（UUID 格式）
+     *                    - name: 可选，列名称
+     *                    - sortOrder: 可选，排序顺序
+     *                    - customAttributes: 可选，自定义属性（JSON 对象）
+     * @param httpRequest HTTP 请求（用于获取当前用户 ID）
      * @return 更新后的列信息
-     *
-     * @apiNote 当前 userId 写死为 "user-1"，后续从 JWT Token 中提取
      */
     @Operation(
             summary = "更新列信息",
@@ -62,10 +74,9 @@ public class ColumnController {
     @PostMapping("/update")
     public ApiResponse<ColumnDto> updateColumn(
             @Parameter(description = "更新列请求参数", required = true)
-            @RequestBody UpdateColumnRequest request) {
-        // TODO: 后续从 JWT Header 中提取 userId
-        String userId = "user-1";
-
+            @RequestBody UpdateColumnRequest request,
+            HttpServletRequest httpRequest) {
+        String userId = getCurrentUserId(httpRequest);
         ColumnDto columnDto = columnService.updateColumn(userId, request);
         return ApiResponse.success(columnDto);
     }

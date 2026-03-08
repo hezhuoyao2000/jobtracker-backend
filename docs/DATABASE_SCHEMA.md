@@ -9,10 +9,29 @@
 ### 1.1 看板表 - board
 
 ```sql
+-- 用户表
+CREATE TABLE users (
+    id              VARCHAR(255) PRIMARY KEY,
+    username        VARCHAR(255) NOT NULL UNIQUE,
+    password_hash   VARCHAR(255),
+    email           VARCHAR(255) UNIQUE,
+    display_name    VARCHAR(255),
+    avatar_url      VARCHAR(500),
+    created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_email ON users(email);
+```
+
+### 1.2 看板表 - board
+
+```sql
 -- 看板表
 CREATE TABLE board (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id     VARCHAR(255) NOT NULL,
+    user_id     VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name        VARCHAR(255) NOT NULL DEFAULT 'My Job Tracker',
     created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -54,9 +73,9 @@ CREATE TABLE job_card (
     job_location    VARCHAR(255),
     description     TEXT,
     applied_time    TIMESTAMP WITH TIME ZONE,
-    tags            TEXT[],
+    tags            TEXT,
     comments        TEXT,
-    extra           JSONB,
+    extra           TEXT,
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at      TIMESTAMP WITH TIME ZONE,
@@ -72,7 +91,55 @@ CREATE INDEX idx_job_card_deleted_at ON job_card(deleted_at);
 
 ## 二、JPA Entity 设计
 
-### 2.1 Board
+### 2.1 User
+
+```java
+@Entity
+@Table(name = "users")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class User {
+    @Id
+    @Column(name = "id", nullable = false, updatable = false)
+    private String id;
+
+    @Column(name = "username", nullable = false, unique = true)
+    private String username;
+
+    @Column(name = "password_hash")
+    private String passwordHash;
+
+    @Column(name = "email", unique = true)
+    private String email;
+
+    @Column(name = "display_name")
+    private String displayName;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+        updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
+    }
+}
+```
+
+### 2.2 Board
 
 ```java
 @Entity

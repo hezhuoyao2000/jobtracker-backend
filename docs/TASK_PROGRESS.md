@@ -119,30 +119,35 @@
 
 ---
 
-### 阶段 4：认证与联调（第 8 天起）⏳
+### 阶段 4：认证与联调（第 8 天起）🔄
 
 | 序号 | 任务 | 状态 | 备注 |
 |------|------|------|------|
-| 4.1 | 集成 JWT 认证 | ⏳ | 待开发 |
-| 4.2 | 与前端联调 | ⏳ | 待进行 |
-| 4.3 | Bug 修复与优化 | ⏳ | 待进行 |
+| 4.1 | JWT 工具类 JwtUtil | ✅ | Token 生成与解析 |
+| 4.2 | JWT 过滤器 | ✅ | 请求拦截验证 |
+| 4.3 | 登录接口 | ✅ | /auth/login |
+| 4.4 | Controller 集成 JWT | ✅ | 从 Header 提取 userId |
+| 4.5 | 用户表创建 | ✅ | User 实体 + Repository |
+| 4.6 | 登录接口完善 | ✅ | 用户验证 + 自动创建 |
+| 4.7 | Swagger 修复 | ✅ | SpringDoc 升级至 2.8.5 |
+| 4.8 | 与前端联调 | ⏳ | 待进行 |
 
 ---
 
 ## 当前工作焦点
 
-**当前阶段：** 阶段 3 - 接口完善 ✅（已完成）
+**当前阶段：** 阶段 4 - JWT 认证与联调 🔄
 
 **已完成：**
-1. ✅ 自定义异常类（BusinessException, ResourceNotFoundException, UnauthorizedException）
-2. ✅ 全局异常处理（GlobalExceptionHandler）
-3. ✅ 日志记录（SLF4J）
-4. ✅ Service 层异常替换和日志添加
+1. ✅ 添加 JWT 依赖 (jjwt)
+2. ✅ 创建 JwtUtil 工具类
+3. ✅ 创建 JWT 过滤器 (JwtAuthenticationFilter)
+4. ✅ 创建登录接口 (/auth/login)
+5. ✅ Controller 从 Header 提取 userId
 
-**待后续实现：**
-- 参数校验 @Valid（需要引入 Hibernate Validator 依赖，现阶段可选）
-
-**下一步：** 阶段 4 - JWT 认证与联调
+**待进行：**
+- 与前端联调
+- Bug 修复与优化
 
 ---
 
@@ -188,7 +193,8 @@ src/main/java/com/example/myfirstspringboot/
 ├── repository/
 │   ├── BoardRepository.java ✅
 │   ├── KanbanColumnRepository.java ✅
-│   └── JobCardRepository.java ✅
+│   ├── JobCardRepository.java ✅
+│   └── UserRepository.java ✅ (阶段 4)
 ├── dto/request/
 │   ├── CreateBoardRequest.java ✅
 │   ├── LoadBoardRequest.java ✅
@@ -213,7 +219,13 @@ src/main/java/com/example/myfirstspringboot/
 ├── controller/
 │   ├── BoardController.java ✅
 │   ├── ColumnController.java ✅ (迭代 2)
-│   └── JobCardController.java ✅ (迭代 3)
+│   ├── JobCardController.java ✅ (迭代 3)
+│   └── AuthController.java ✅ (阶段 4)
+├── Entity/
+│   ├── Board.java ✅
+│   ├── KanbanColumn.java ✅
+│   ├── JobCard.java ✅
+│   └── User.java ✅ (阶段 4)
 ├── exception/
 │   ├── ApiResponse.java ✅
 │   ├── BusinessException.java ✅ (阶段 3)
@@ -221,10 +233,13 @@ src/main/java/com/example/myfirstspringboot/
 │   ├── ResourceNotFoundException.java ✅ (阶段 3)
 │   └── UnauthorizedException.java ✅ (阶段 3)
 ├── util/
-│   └── DtoConverter.java ✅
+│   ├── DtoConverter.java ✅
+│   └── JwtUtil.java ✅ (阶段 4)
 └── config/
     ├── OpenApiConfig.java ✅
-    └── BrowserLauncher.java ✅
+    ├── BrowserLauncher.java ✅
+    ├── JwtAuthenticationFilter.java ✅ (阶段 4)
+    └── WebConfig.java ✅ (阶段 4)
 ```
 
 ### 已删除文件（MyBatis 相关）
@@ -266,7 +281,7 @@ src/test/http/
 | 迭代 2：Column 模块 | 第 4 天末 | ✅ 已完成 |
 | 迭代 3：JobCard 模块 | 第 5 天末 | ✅ 已完成 |
 | 接口完善（异常处理/日志） | 第 6 天末 | ✅ 已完成 |
-| JWT 认证完成 | 第 8 天末 | ⏳ |
+| JWT 认证完成 | 第 8 天末 | ✅ 已完成 |
 | 前端联调完成 | 第 10 天末 | ⏳ |
 
 ---

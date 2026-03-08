@@ -5,6 +5,7 @@ import com.example.myfirstspringboot.dto.request.LoadBoardRequest;
 import com.example.myfirstspringboot.dto.response.BoardDataDto;
 import com.example.myfirstspringboot.dto.response.BoardDto;
 import com.example.myfirstspringboot.exception.ApiResponse;
+import com.example.myfirstspringboot.exception.UnauthorizedException;
 import com.example.myfirstspringboot.service.BoardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,6 +34,22 @@ public class BoardController {
 
     private final BoardService boardService;
 
+    // ========== 辅助方法 ==========
+
+    /**
+     * 从请求中获取当前用户 ID
+     * @param request HTTP 请求
+     * @return 用户 ID
+     * @throws UnauthorizedException 如果未找到用户 ID
+     */
+    private String getCurrentUserId(HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        if (userId == null) {
+            throw new UnauthorizedException("未登录或登录已过期");
+        }
+        return userId;
+    }
+
     // ========== 接口定义 ==========
 
     /**
@@ -43,11 +61,10 @@ public class BoardController {
      * - 返回数据包含：看板信息、所有列、所有卡片（未删除的）
      * </p>
      *
-     * @param request 请求参数
-     *                - boardId: 可选，看板 ID（UUID 格式），不传则返回第一个看板
+     * @param request     请求参数
+     *                    - boardId: 可选，看板 ID（UUID 格式），不传则返回第一个看板
+     * @param httpRequest HTTP 请求（用于获取当前用户 ID）
      * @return 看板完整数据，包含 board、columns、cards
-     *
-     * @apiNote 当前 userId 写死为 "user-1"，后续从 JWT Token 中提取
      */
     @Operation(
             summary = "加载看板完整数据",
@@ -63,12 +80,9 @@ public class BoardController {
     @PostMapping("/load")
     public ApiResponse<BoardDataDto> loadBoard(
             @Parameter(description = "加载看板请求参数", required = true)
-            @RequestBody LoadBoardRequest request) {
-        // TODO: 后续从 JWT Header 中提取 userId
-        // 例如：@RequestHeader("Authorization") String token
-        // String userId = jwtUtil.parseUserId(token);
-        String userId = "user-1";
-
+            @RequestBody LoadBoardRequest request,
+            HttpServletRequest httpRequest) {
+        String userId = getCurrentUserId(httpRequest);
         BoardDataDto data = boardService.loadBoard(userId, request);
         return ApiResponse.success(data);
     }
@@ -82,11 +96,10 @@ public class BoardController {
      * - 看板名称为空时，使用默认名称 "My Job Tracker"
      * </p>
      *
-     * @param request 请求参数
-     *                - name: 可选，看板名称，为空则使用默认名称
+     * @param request     请求参数
+     *                    - name: 可选，看板名称，为空则使用默认名称
+     * @param httpRequest HTTP 请求（用于获取当前用户 ID）
      * @return 创建后的看板信息
-     *
-     * @apiNote 当前 userId 写死为 "user-1"，后续从 JWT Token 中提取
      */
     @Operation(
             summary = "创建看板",
@@ -99,10 +112,9 @@ public class BoardController {
     @PostMapping("/create")
     public ApiResponse<BoardDto> createBoard(
             @Parameter(description = "创建看板请求参数", required = true)
-            @RequestBody CreateBoardRequest request) {
-        // TODO: 后续从 JWT Header 中提取 userId
-        String userId = "user-1";
-
+            @RequestBody CreateBoardRequest request,
+            HttpServletRequest httpRequest) {
+        String userId = getCurrentUserId(httpRequest);
         BoardDto boardDto = boardService.createBoard(userId, request);
         return ApiResponse.success(boardDto);
     }
