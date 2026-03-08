@@ -9,6 +9,7 @@ import com.example.myfirstspringboot.dto.response.BoardDataDto;
 import com.example.myfirstspringboot.dto.response.BoardDto;
 import com.example.myfirstspringboot.dto.response.ColumnDto;
 import com.example.myfirstspringboot.dto.response.JobCardDto;
+import com.example.myfirstspringboot.exception.ResourceNotFoundException;
 import com.example.myfirstspringboot.repository.BoardRepository;
 import com.example.myfirstspringboot.repository.JobCardRepository;
 import com.example.myfirstspringboot.repository.KanbanColumnRepository;
@@ -295,7 +296,7 @@ class BoardServiceImplTest {
         when(boardRepository.findByIdAndUserId(nonExistentBoardId, userId))
                 .thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             boardService.loadBoard(userId, request);
         });
 
@@ -311,7 +312,7 @@ class BoardServiceImplTest {
         when(boardRepository.findFirstByUserIdOrderByCreatedAtAsc(userId))
                 .thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             boardService.loadBoard(userId, request);
         });
 

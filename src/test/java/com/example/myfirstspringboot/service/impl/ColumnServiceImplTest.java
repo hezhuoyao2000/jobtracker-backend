@@ -3,6 +3,9 @@ package com.example.myfirstspringboot.service.impl;
 import com.example.myfirstspringboot.Entity.KanbanColumn;
 import com.example.myfirstspringboot.dto.request.UpdateColumnRequest;
 import com.example.myfirstspringboot.dto.response.ColumnDto;
+import com.example.myfirstspringboot.exception.BusinessException;
+import com.example.myfirstspringboot.exception.ResourceNotFoundException;
+import com.example.myfirstspringboot.exception.UnauthorizedException;
 import com.example.myfirstspringboot.repository.BoardRepository;
 import com.example.myfirstspringboot.repository.KanbanColumnRepository;
 import com.example.myfirstspringboot.util.DtoConverter;
@@ -248,11 +251,11 @@ class ColumnServiceImplTest {
 
         when(columnRepository.findById(nonExistentColumnId)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             columnService.updateColumn(testUserId, request);
         });
 
-        assertEquals("列不存在", exception.getMessage());
+        assertEquals("列 不存在: id = '" + nonExistentColumnId + "'", exception.getMessage());
         verify(columnRepository, times(1)).findById(nonExistentColumnId);
         verify(boardRepository, never()).existsByIdAndUserId(any(), any());
         verify(columnRepository, never()).save(any());
@@ -268,11 +271,11 @@ class ColumnServiceImplTest {
         when(columnRepository.findById(testColumnId)).thenReturn(Optional.of(testColumn));
         when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(false);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        UnauthorizedException exception = assertThrows(UnauthorizedException.class, () -> {
             columnService.updateColumn(testUserId, request);
         });
 
-        assertEquals("看板不存在或不属于该用户", exception.getMessage());
+        assertEquals("无权更新该列", exception.getMessage());
         verify(columnRepository, times(1)).findById(testColumnId);
         verify(boardRepository, times(1)).existsByIdAndUserId(testBoardId, testUserId);
         verify(columnRepository, never()).save(any());

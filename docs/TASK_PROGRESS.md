@@ -94,16 +94,16 @@
 
 ---
 
-### 阶段 3：接口完善 ⏳
+### 阶段 3：接口完善 ✅（已完成）
 
 在所有增量迭代完成后进行：
 
 | 序号 | 任务 | 状态 | 备注 |
 |------|------|------|------|
-| 3.1 | 全局异常处理 GlobalExceptionHandler | ⏳ | 统一异常响应 |
-| 3.2 | 参数校验 @Valid | ⏳ | 请求参数校验 |
-| 3.3 | 自定义异常类 | ⏳ | BusinessException 等 |
-| 3.4 | 日志记录 SLF4J | ⏳ | 添加操作日志 |
+| 3.1 | 全局异常处理 GlobalExceptionHandler | ✅ | 统一异常响应 |
+| 3.2 | 参数校验 @Valid | ⏳ | 待后续需要时添加（需引入 Hibernate Validator） |
+| 3.3 | 自定义异常类 | ✅ | BusinessException 等 |
+| 3.4 | 日志记录 SLF4J | ✅ | 添加操作日志 |
 
 **接口实现状态：**
 
@@ -131,24 +131,18 @@
 
 ## 当前工作焦点
 
-**当前迭代：** 阶段 3 - 接口完善 🔄
+**当前阶段：** 阶段 3 - 接口完善 ✅（已完成）
 
-**开发流程：**
-```
-全局异常处理 GlobalExceptionHandler
-    → 参数校验 @Valid
-    → 自定义异常类
-    → 日志记录 SLF4J
-    → 完成阶段 3
-```
+**已完成：**
+1. ✅ 自定义异常类（BusinessException, ResourceNotFoundException, UnauthorizedException）
+2. ✅ 全局异常处理（GlobalExceptionHandler）
+3. ✅ 日志记录（SLF4J）
+4. ✅ Service 层异常替换和日志添加
 
-**当前步骤：**
-1. ⏳ 全局异常处理 GlobalExceptionHandler
-2. ⏳ 参数校验 @Valid
-3. ⏳ 自定义异常类（可选）
-4. ⏳ 日志记录
+**待后续实现：**
+- 参数校验 @Valid（需要引入 Hibernate Validator 依赖，现阶段可选）
 
-**下一步迭代：** 阶段 4 - JWT 认证与联调
+**下一步：** 阶段 4 - JWT 认证与联调
 
 ---
 
@@ -221,7 +215,11 @@ src/main/java/com/example/myfirstspringboot/
 │   ├── ColumnController.java ✅ (迭代 2)
 │   └── JobCardController.java ✅ (迭代 3)
 ├── exception/
-│   └── ApiResponse.java ✅
+│   ├── ApiResponse.java ✅
+│   ├── BusinessException.java ✅ (阶段 3)
+│   ├── GlobalExceptionHandler.java ✅ (阶段 3)
+│   ├── ResourceNotFoundException.java ✅ (阶段 3)
+│   └── UnauthorizedException.java ✅ (阶段 3)
 ├── util/
 │   └── DtoConverter.java ✅
 └── config/
@@ -267,7 +265,7 @@ src/test/http/
 | 迭代 1：Board 模块 | 第 3 天末 | ✅ 已完成 |
 | 迭代 2：Column 模块 | 第 4 天末 | ✅ 已完成 |
 | 迭代 3：JobCard 模块 | 第 5 天末 | ✅ 已完成 |
-| 接口完善（异常处理/校验） | 第 6 天末 | ⏳ |
+| 接口完善（异常处理/日志） | 第 6 天末 | ✅ 已完成 |
 | JWT 认证完成 | 第 8 天末 | ⏳ |
 | 前端联调完成 | 第 10 天末 | ⏳ |
 

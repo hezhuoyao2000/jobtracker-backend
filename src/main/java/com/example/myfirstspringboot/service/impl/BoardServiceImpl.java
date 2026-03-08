@@ -12,7 +12,9 @@ import com.example.myfirstspringboot.repository.JobCardRepository;
 import com.example.myfirstspringboot.repository.KanbanColumnRepository;
 import com.example.myfirstspringboot.service.BoardService;
 import com.example.myfirstspringboot.util.DtoConverter;
+import com.example.myfirstspringboot.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ import java.util.UUID;
 /**
  * Board 服务实现类
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BoardServiceImpl implements BoardService {
@@ -80,11 +83,11 @@ public class BoardServiceImpl implements BoardService {
         if (boardId == null) {
             // 场景 A: 没有指定 boardId，加载用户的第一个看板
             board = boardRepository.findFirstByUserIdOrderByCreatedAtAsc(userId)
-                    .orElseThrow(() -> new RuntimeException("没有找到该用户的看板"));
+                    .orElseThrow(() -> new ResourceNotFoundException("没有找到该用户的看板"));
         } else {
             // 场景 B: 指定了 boardId，加载该看板并校验权限
             board = boardRepository.findByIdAndUserId(boardId, userId)
-                    .orElseThrow(() -> new RuntimeException("看板不存在或不属于该用户"));
+                    .orElseThrow(() -> new ResourceNotFoundException("看板不存在或不属于该用户"));
         }
 
         // 查询该看板的所有列（按 sortOrder 排序）

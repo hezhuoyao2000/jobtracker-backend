@@ -6,6 +6,9 @@ import com.example.myfirstspringboot.dto.request.DeleteCardRequest;
 import com.example.myfirstspringboot.dto.request.MoveCardRequest;
 import com.example.myfirstspringboot.dto.request.UpdateCardRequest;
 import com.example.myfirstspringboot.dto.response.JobCardDto;
+import com.example.myfirstspringboot.exception.BusinessException;
+import com.example.myfirstspringboot.exception.ResourceNotFoundException;
+import com.example.myfirstspringboot.exception.UnauthorizedException;
 import com.example.myfirstspringboot.repository.BoardRepository;
 import com.example.myfirstspringboot.repository.JobCardRepository;
 import com.example.myfirstspringboot.repository.KanbanColumnRepository;
@@ -151,11 +154,11 @@ class JobCardServiceImplTest {
 
         when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(false);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        UnauthorizedException exception = assertThrows(UnauthorizedException.class, () -> {
             jobCardService.createCard(testUserId, request);
         });
 
-        assertEquals("看板不存在或不属于该用户", exception.getMessage());
+        assertEquals("无权在该看板创建卡片", exception.getMessage());
         verify(columnRepository, never()).existsByIdAndBoardId(any(), any());
         verify(jobCardRepository, never()).save(any());
     }
@@ -172,7 +175,7 @@ class JobCardServiceImplTest {
         when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
         when(columnRepository.existsByIdAndBoardId(testStatusId, testBoardId)).thenReturn(false);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             jobCardService.createCard(testUserId, request);
         });
 
@@ -243,11 +246,11 @@ class JobCardServiceImplTest {
 
         when(jobCardRepository.findByIdAndDeletedAtIsNull(nonExistentCardId)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             jobCardService.updateCard(testUserId, request);
         });
 
-        assertEquals("卡片不存在", exception.getMessage());
+        assertEquals("卡片 不存在: id = '" + nonExistentCardId + "'", exception.getMessage());
         verify(boardRepository, never()).existsByIdAndUserId(any(), any());
         verify(jobCardRepository, never()).save(any());
     }
@@ -264,7 +267,7 @@ class JobCardServiceImplTest {
         when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
         when(columnRepository.existsByIdAndBoardId(invalidStatusId, testBoardId)).thenReturn(false);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             jobCardService.updateCard(testUserId, request);
         });
 
@@ -313,7 +316,7 @@ class JobCardServiceImplTest {
         when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
         when(columnRepository.existsByIdAndBoardId(invalidStatusId, testBoardId)).thenReturn(false);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             jobCardService.moveCard(testUserId, request);
         });
 
@@ -354,11 +357,11 @@ class JobCardServiceImplTest {
 
         when(jobCardRepository.findByIdAndDeletedAtIsNull(nonExistentCardId)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             jobCardService.deleteCard(testUserId, request);
         });
 
-        assertEquals("卡片不存在", exception.getMessage());
+        assertEquals("卡片 不存在: id = '" + nonExistentCardId + "'", exception.getMessage());
         verify(jobCardRepository, never()).save(any());
     }
 }

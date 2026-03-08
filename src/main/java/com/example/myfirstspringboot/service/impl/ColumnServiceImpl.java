@@ -3,6 +3,9 @@ package com.example.myfirstspringboot.service.impl;
 import com.example.myfirstspringboot.Entity.KanbanColumn;
 import com.example.myfirstspringboot.dto.request.UpdateColumnRequest;
 import com.example.myfirstspringboot.dto.response.ColumnDto;
+import com.example.myfirstspringboot.exception.BusinessException;
+import com.example.myfirstspringboot.exception.ResourceNotFoundException;
+import com.example.myfirstspringboot.exception.UnauthorizedException;
 import com.example.myfirstspringboot.repository.BoardRepository;
 import com.example.myfirstspringboot.repository.KanbanColumnRepository;
 import com.example.myfirstspringboot.service.ColumnService;
@@ -10,6 +13,7 @@ import com.example.myfirstspringboot.util.DtoConverter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +22,7 @@ import java.util.UUID;
 /**
  * 列服务实现类
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ColumnServiceImpl implements ColumnService {
@@ -37,38 +42,48 @@ public class ColumnServiceImpl implements ColumnService {
     @Transactional
     public ColumnDto updateColumn(String userId, UpdateColumnRequest request) {
         UUID columnId = request.getColumnId();
+        log.info("更新列信息: columnId={}, userId={}", columnId, userId);
 
         // 步骤 1: 查询列
         KanbanColumn column = columnRepository.findById(columnId)
-                .orElseThrow(() -> new RuntimeException("列不存在"));
+                .orElseThrow(() -> {
+                    log.warn("列不存在: columnId={}", columnId);
+                    return new ResourceNotFoundException("列", "id", columnId);
+                });
 
         // 步骤 2: 校验看板属于当前用户
         UUID boardId = column.getBoardId();
         boolean boardExists = boardRepository.existsByIdAndUserId(boardId, userId);
         if (!boardExists) {
-            throw new RuntimeException("看板不存在或不属于该用户");
+            log.warn("无权更新列: columnId={}, boardId={}, userId={}", columnId, boardId, userId);
+            throw new UnauthorizedException("无权更新该列");
         }
 
         // 步骤 3: 只更新传入的非空字段
         if (request.getName() != null && !request.getName().trim().isEmpty()) {
             column.setName(request.getName());
+            log.debug("更新列名称: {}", request.getName());
         }
 
         if (request.getSortOrder() != null) {
             column.setSortOrder(request.getSortOrder());
+            log.debug("更新列排序: {}", request.getSortOrder());
         }
 
         if (request.getCustomAttributes() != null) {
             try {
                 String customAttributesJson = objectMapper.writeValueAsString(request.getCustomAttributes());
                 column.setCustomAttributes(customAttributesJson);
+                log.debug("更新列自定义属性");
             } catch (JsonProcessingException e) {
-                throw new RuntimeException("自定义属性序列化失败", e);
+                log.error("自定义属性序列化失败", e);
+                throw new BusinessException("自定义属性序列化失败");
             }
         }
 
         // 步骤 4: 保存到数据库
         KanbanColumn savedColumn = columnRepository.save(column);
+        log.info("列更新成功: columnId={}", columnId);
 
         // 步骤 5: 转换为 DTO 并返回
         return dtoConverter.toColumnDto(savedColumn);
