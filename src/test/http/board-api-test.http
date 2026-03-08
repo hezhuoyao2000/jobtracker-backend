@@ -53,8 +53,13 @@ Content-Type: application/json
 ### 步骤 2：加载看板数据
 # 运行 "加载用户的第一个看板"（不需要 boardId）
 # 或使用步骤 1 复制的 id 运行 "加载指定看板"
+# 复制响应中的 columns[0].id（列 ID）用于步骤 3
 
-### 预期响应结构：
+### 步骤 3：更新列
+# 使用步骤 2 复制的 columnId 运行 "更新列名称" 请求
+# 验证响应中的 name 字段已更新
+
+### 预期响应结构（加载看板）：
 ### {
 ###   "code": 200,
 ###   "message": "success",
@@ -66,10 +71,45 @@ Content-Type: application/json
 ### }
 
 ### ============================================================
-### 后续接口（待实现）
+### 3. 更新列
 ### ============================================================
 
-### 3. 创建卡片
+### 3.1 更新列名称（需要替换 UUID 为实际 columnId）
+### 提示：从加载看板响应中复制 columns[0].id 替换下方的 UUID
+POST http://localhost:8080/board/column/update
+Content-Type: application/json
+
+{
+  "columnId": "550e8400-e29b-41d4-a716-446655440001",
+  "name": "意向岗位"
+}
+
+### 3.2 更新列排序顺序
+POST http://localhost:8080/board/column/update
+Content-Type: application/json
+
+{
+  "columnId": "550e8400-e29b-41d4-a716-446655440001",
+  "sortOrder": 10
+}
+
+### 3.3 更新列自定义属性
+POST http://localhost:8080/board/column/update
+Content-Type: application/json
+
+{
+  "columnId": "550e8400-e29b-41d4-a716-446655440001",
+  "customAttributes": {
+    "color": "#ff5722",
+    "wipLimit": 5
+  }
+}
+
+### ============================================================
+### 后续接口（待实现 - JobCard 模块）
+### ============================================================
+
+### 4. 创建卡片
 # POST http://localhost:8080/board/card/create
 # Content-Type: application/json
 #
@@ -80,7 +120,7 @@ Content-Type: application/json
 #   "companyName": "阿里巴巴"
 # }
 
-### 4. 更新卡片
+### 5. 更新卡片
 # POST http://localhost:8080/board/card/update
 # Content-Type: application/json
 #
@@ -89,7 +129,7 @@ Content-Type: application/json
 #   "jobTitle": "更新后的职位名称"
 # }
 
-### 5. 移动卡片
+### 6. 移动卡片
 # POST http://localhost:8080/board/card/move
 # Content-Type: application/json
 #
@@ -98,19 +138,10 @@ Content-Type: application/json
 #   "targetStatusId": "替换为目标columnId"
 # }
 
-### 6. 删除卡片（软删除）
+### 7. 删除卡片（软删除）
 # POST http://localhost:8080/board/card/delete
 # Content-Type: application/json
 #
 # {
 #   "cardId": "替换为实际cardId"
-# }
-
-### 7. 更新列
-# POST http://localhost:8080/board/column/update
-# Content-Type: application/json
-#
-# {
-#   "columnId": "替换为实际columnId",
-#   "name": "新的列名称"
 # }

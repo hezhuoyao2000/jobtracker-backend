@@ -16,4 +16,7 @@ public interface BoardRepository extends JpaRepository<Board, UUID> {
 
     Optional<Board> findByIdAndUserId(UUID id, String userId);
 
+    // 检查看板是否存在且属于指定用户
+    boolean existsByIdAndUserId(UUID id, String userId);
+
 }
