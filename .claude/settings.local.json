@@ -18,7 +18,9 @@
       "Bash(tasklist:*)",
       "Bash(taskkill:*)",
       "Bash(wmic process:*)",
-      "Bash(__NEW_LINE_ce5c6635138b2448__ curl:*)"
+      "Bash(__NEW_LINE_ce5c6635138b2448__ curl:*)",
+      "Read(//c/application/code/untitled/**)",
+      "Bash(./mvnw.cmd compile:*)"
     ]
   }
 }
