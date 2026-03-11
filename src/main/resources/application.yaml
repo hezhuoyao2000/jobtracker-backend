@@ -26,9 +26,22 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"  # 只暴露健康和信息端点以节约性能 [6]
+        # if: "*"              # 或者暴露所有 (开发环境慎用，生产环境不推荐)
+  endpoint:
+    health:
+      probes:
+        enabled: true         # 开启主动探针支持 [7]
+      show-details: always    # 输出详细信息方便调试（生产可改为 never）
+
 # 应用配置
 app:
   # 启动时自动打开浏览器（true=启用，false=禁用）
   auto-open-browser: true
   # Swagger UI 路径
   swagger-path: /swagger-ui/index.html
+

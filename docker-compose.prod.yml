@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  db:
+    image: postgres:16-alpine
+    container_name: myfirstspringboot-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-mysite_prod}
+      POSTGRES_USER: ${DB_USER:-mysite}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-mysite} -d ${DB_NAME:-mysite_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - app-network
+    # 暴露到宿主机，用于数据库管理工具连接（生产环境建议移除）
+    ports:
+      - "${DB_EXTERNAL_PORT:-5432}:5432"
+
+  # Spring Boot 后端服务
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: myfirstspringboot-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # 数据库连接配置
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-mysite_prod}
+      DB_USER: ${DB_USER:-mysite}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      # JWT 配置
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: prod
+      # JVM 优化（可覆盖 Dockerfile 中的默认值）
+      JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx512m -XX:+UseG1GC}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -O - -q --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

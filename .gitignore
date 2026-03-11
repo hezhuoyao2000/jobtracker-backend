@@ -40,3 +40,6 @@ build/
 /.aiassistant/rules
 backup/
 postgres_data/
+
+#打包用
+.env
