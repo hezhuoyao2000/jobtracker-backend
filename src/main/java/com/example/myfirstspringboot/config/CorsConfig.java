@@ -26,8 +26,10 @@ public class CorsConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        // 允许前端地址访问（开发环境）
-        config.addAllowedOrigin("http://localhost:3000");
+        // 允许前端地址访问
+        config.addAllowedOrigin("http://localhost:3000");  // 本地开发环境
+        config.addAllowedOrigin("https://www.hezhuoyao.top");  // 生产环境
+        config.addAllowedOrigin("https://hezhuoyao.top");  // 生产环境（无 www 前缀）
         // 允许所有 HTTP 方法（GET, POST, PUT, DELETE, OPTIONS 等）
         config.addAllowedMethod("*");
         // 允许所有请求头
