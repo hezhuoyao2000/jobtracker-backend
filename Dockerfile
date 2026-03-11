@@ -4,9 +4,10 @@ FROM eclipse-temurin:17-jdk-alpine AS builder
 
 WORKDIR /build
 
-# 复制 Maven Wrapper 文件
+# 复制 Maven Wrapper 文件并赋予执行权限
 COPY mvnw .
 COPY .mvn .mvn
+RUN chmod +x mvnw
 
 # 复制 pom.xml 先下载依赖（利用 Docker 缓存层）
 COPY pom.xml .
