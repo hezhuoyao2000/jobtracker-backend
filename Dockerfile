@@ -1,6 +1,6 @@
 # 多阶段构建：先构建，再运行
 # Stage 1: Build
-FROM eclipse-temurin:17-jdk-alpine AS builder
+FROM eclipse-temurin:17-jdk AS builder
 
 WORKDIR /build
 
@@ -18,22 +18,22 @@ COPY src ./src
 RUN ./mvnw clean package -DskipTests -B
 
 # Stage 2: Run
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
 # 创建非 root 用户运行应用
-RUN addgroup -S spring && adduser -S spring -G spring
+RUN groupadd -r spring && useradd -r -g spring spring
 
 # 从构建阶段复制 JAR 文件
 COPY --from=builder /build/target/*.jar app.jar
 
 # 设置时区
 ENV TZ=Asia/Shanghai
-RUN apk add --no-cache tzdata && \
-    cp /usr/share/zoneinfo/$TZ /etc/localtime && \
-    echo $TZ > /etc/timezone && \
-    apk del tzdata
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends tzdata && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 切换到非 root 用户
 USER spring:spring
