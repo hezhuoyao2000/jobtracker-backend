@@ -1,0 +1,30 @@
+{
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-dc19142f-5a6f-4fae-8bd3-86a86b2f2e5b"
+      },
+      "enabled": true
+    }
+  },
+
+  "$schema": "https://opencode.ai/config.json",
+
+  "permission": {
+    "bash": "allow",
+    "edit": "allow",
+    "read": "allow",
+    "grep": "allow",
+    "glob": "allow",
+    "list": "allow",
+    "skill": "allow",
+    "todoread": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "question": "allow"
+  },
+
+  "instructions": [".cursor/rules/react-rule.mdc"]
+}
