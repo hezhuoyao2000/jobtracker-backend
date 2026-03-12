@@ -3,12 +3,12 @@ spring:
     name: myfirstspringboot
   datasource:
     url: jdbc:postgresql://localhost:2015/mysite_dev
-    username: postgres
+    username: hezhuoyao
     password: hzythebest1
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: none  # 禁用 schema 验证，数据库表已手动创建
+      ddl-auto: none  # 使用 schema.sql 初始化表
     show-sql: true
     properties:
       hibernate:
