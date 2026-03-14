@@ -1,10 +1,14 @@
 package com.example.myfirstspringboot.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 跨域配置类
@@ -16,6 +20,15 @@ import org.springframework.web.filter.CorsFilter;
 @Configuration
 public class CorsConfig {
 
+    @Value("${CORS_ALLOWED_ORIGIN_1}")
+    private String corsOrigin1;
+
+    @Value("${CORS_ALLOWED_ORIGIN_2}")
+    private String corsOrigin2;
+
+    @Value("${CORS_ALLOWED_ORIGIN_3}")
+    private String corsOrigin3;
+
     /**
      * 配置 CORS 过滤器
      *
@@ -26,21 +39,16 @@ public class CorsConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        // 允许前端地址访问
-        config.addAllowedOrigin("http://localhost:3000");  // 本地开发环境
-        config.addAllowedOrigin("https://www.hezhuoyao.top");  // 生产环境
-        config.addAllowedOrigin("https://hezhuoyao.top");  // 生产环境（无 www 前缀）
-        // 允许所有 HTTP 方法（GET, POST, PUT, DELETE, OPTIONS 等）
+        
+        List<String> allowedOrigins = Arrays.asList(corsOrigin1, corsOrigin2, corsOrigin3);
+        config.setAllowedOrigins(allowedOrigins);
+        
         config.addAllowedMethod("*");
-        // 允许所有请求头
         config.addAllowedHeader("*");
-        // 允许携带凭证（如 Cookie、Authorization Header）
         config.setAllowCredentials(true);
-        // 预检请求缓存时间（秒）
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // 对所有路径生效
         source.registerCorsConfiguration("/**", config);
 
         return new CorsFilter(source);
