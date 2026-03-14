@@ -1,4 +1,11 @@
 {
+  "compaction": {
+  "auto": true,
+  "strategy": "summarize",
+  "threshold": 0.8,
+  "prune_tool_outputs": true
+  },
+  
   "mcp": {
     "context7": {
       "type": "remote",
@@ -7,8 +14,20 @@
         "CONTEXT7_API_KEY": "ctx7sk-dc19142f-5a6f-4fae-8bd3-86a86b2f2e5b"
       },
       "enabled": true
+    },
+    "gh_grep": {
+      "type": "remote",
+      "url": "https://mcp.grep.app"
     }
+
   },
+
+  "plugin": [
+    "@tarquinen/opencode-dcp@latest",
+    "@zenobius/opencode-skillful"
+  ],
+  
+
 
   "$schema": "https://opencode.ai/config.json",
 
