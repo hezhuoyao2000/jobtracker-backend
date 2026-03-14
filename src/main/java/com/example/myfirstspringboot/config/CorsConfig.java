@@ -20,13 +20,13 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
-    @Value("${CORS_ALLOWED_ORIGIN_1}")
+    @Value("${CORS_ALLOWED_ORIGIN_1:http://localhost:3000}")
     private String corsOrigin1;
 
-    @Value("${CORS_ALLOWED_ORIGIN_2}")
+    @Value("${CORS_ALLOWED_ORIGIN_2:https://www.hezhuoyao.top}")
     private String corsOrigin2;
 
-    @Value("${CORS_ALLOWED_ORIGIN_3}")
+    @Value("${CORS_ALLOWED_ORIGIN_3:https://hezhuoyao.top}")
     private String corsOrigin3;
 
     /**
