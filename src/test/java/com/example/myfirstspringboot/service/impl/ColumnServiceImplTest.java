@@ -6,8 +6,8 @@ import com.example.myfirstspringboot.dto.response.ColumnDto;
 import com.example.myfirstspringboot.exception.BusinessException;
 import com.example.myfirstspringboot.exception.ResourceNotFoundException;
 import com.example.myfirstspringboot.exception.UnauthorizedException;
-import com.example.myfirstspringboot.repository.BoardRepository;
-import com.example.myfirstspringboot.repository.KanbanColumnRepository;
+import com.example.myfirstspringboot.mapper.BoardMapper;
+import com.example.myfirstspringboot.mapper.KanbanColumnMapper;
 import com.example.myfirstspringboot.util.DtoConverter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,17 +28,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * ColumnServiceImpl 单元测试类
+ * ColumnServiceImpl 单元测试类（MyBatis-Plus 版本）
  */
 @ExtendWith(MockitoExtension.class)
 class ColumnServiceImplTest {
 
     // ========== Mock 对象 ==========
     @Mock
-    private KanbanColumnRepository columnRepository;
+    private KanbanColumnMapper columnMapper;
 
     @Mock
-    private BoardRepository boardRepository;
+    private BoardMapper boardMapper;
 
     @Mock
     private DtoConverter dtoConverter;
@@ -91,9 +90,8 @@ class ColumnServiceImplTest {
         request.setName("New Name");
 
         // Mock
-        when(columnRepository.findById(testColumnId)).thenReturn(Optional.of(testColumn));
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
-        when(columnRepository.save(any(KanbanColumn.class))).thenReturn(testColumn);
+        when(columnMapper.selectById(testColumnId)).thenReturn(testColumn);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
         when(dtoConverter.toColumnDto(testColumn)).thenReturn(testColumnDto);
 
         // 执行
@@ -101,12 +99,12 @@ class ColumnServiceImplTest {
 
         // 验证
         assertNotNull(result);
-        verify(columnRepository, times(1)).findById(testColumnId);
-        verify(boardRepository, times(1)).existsByIdAndUserId(testBoardId, testUserId);
+        verify(columnMapper, times(1)).selectById(testColumnId);
+        verify(boardMapper, times(1)).existsByIdAndUserId(testBoardId, testUserId);
 
         // 验证只更新了名称
         ArgumentCaptor<KanbanColumn> columnCaptor = ArgumentCaptor.forClass(KanbanColumn.class);
-        verify(columnRepository, times(1)).save(columnCaptor.capture());
+        verify(columnMapper, times(1)).updateById(columnCaptor.capture());
         KanbanColumn savedColumn = columnCaptor.getValue();
         assertEquals("New Name", savedColumn.getName());
         assertEquals(1, savedColumn.getSortOrder()); // 未改变
@@ -119,9 +117,8 @@ class ColumnServiceImplTest {
         request.setColumnId(testColumnId);
         request.setSortOrder(5);
 
-        when(columnRepository.findById(testColumnId)).thenReturn(Optional.of(testColumn));
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
-        when(columnRepository.save(any(KanbanColumn.class))).thenReturn(testColumn);
+        when(columnMapper.selectById(testColumnId)).thenReturn(testColumn);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
         when(dtoConverter.toColumnDto(testColumn)).thenReturn(testColumnDto);
 
         ColumnDto result = columnService.updateColumn(testUserId, request);
@@ -129,7 +126,7 @@ class ColumnServiceImplTest {
         assertNotNull(result);
 
         ArgumentCaptor<KanbanColumn> columnCaptor = ArgumentCaptor.forClass(KanbanColumn.class);
-        verify(columnRepository, times(1)).save(columnCaptor.capture());
+        verify(columnMapper, times(1)).updateById(columnCaptor.capture());
         KanbanColumn savedColumn = columnCaptor.getValue();
         assertEquals("Applied", savedColumn.getName()); // 未改变
         assertEquals(5, savedColumn.getSortOrder());
@@ -147,10 +144,9 @@ class ColumnServiceImplTest {
 
         String jsonAttrs = "{\"color\":\"#ff0000\",\"wipLimit\":5}";
 
-        when(columnRepository.findById(testColumnId)).thenReturn(Optional.of(testColumn));
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
+        when(columnMapper.selectById(testColumnId)).thenReturn(testColumn);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
         when(objectMapper.writeValueAsString(customAttrs)).thenReturn(jsonAttrs);
-        when(columnRepository.save(any(KanbanColumn.class))).thenReturn(testColumn);
         when(dtoConverter.toColumnDto(testColumn)).thenReturn(testColumnDto);
 
         ColumnDto result = columnService.updateColumn(testUserId, request);
@@ -158,7 +154,7 @@ class ColumnServiceImplTest {
         assertNotNull(result);
 
         ArgumentCaptor<KanbanColumn> columnCaptor = ArgumentCaptor.forClass(KanbanColumn.class);
-        verify(columnRepository, times(1)).save(columnCaptor.capture());
+        verify(columnMapper, times(1)).updateById(columnCaptor.capture());
         KanbanColumn savedColumn = columnCaptor.getValue();
         assertEquals(jsonAttrs, savedColumn.getCustomAttributes());
         verify(objectMapper, times(1)).writeValueAsString(customAttrs);
@@ -177,10 +173,9 @@ class ColumnServiceImplTest {
 
         String jsonAttrs = "{\"icon\":\"star\"}";
 
-        when(columnRepository.findById(testColumnId)).thenReturn(Optional.of(testColumn));
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
+        when(columnMapper.selectById(testColumnId)).thenReturn(testColumn);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
         when(objectMapper.writeValueAsString(customAttrs)).thenReturn(jsonAttrs);
-        when(columnRepository.save(any(KanbanColumn.class))).thenReturn(testColumn);
         when(dtoConverter.toColumnDto(testColumn)).thenReturn(testColumnDto);
 
         ColumnDto result = columnService.updateColumn(testUserId, request);
@@ -188,7 +183,7 @@ class ColumnServiceImplTest {
         assertNotNull(result);
 
         ArgumentCaptor<KanbanColumn> columnCaptor = ArgumentCaptor.forClass(KanbanColumn.class);
-        verify(columnRepository, times(1)).save(columnCaptor.capture());
+        verify(columnMapper, times(1)).updateById(columnCaptor.capture());
         KanbanColumn savedColumn = columnCaptor.getValue();
         assertEquals("Interviewing Updated", savedColumn.getName());
         assertEquals(3, savedColumn.getSortOrder());
@@ -202,9 +197,8 @@ class ColumnServiceImplTest {
         request.setColumnId(testColumnId);
         request.setName(""); // 空字符串
 
-        when(columnRepository.findById(testColumnId)).thenReturn(Optional.of(testColumn));
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
-        when(columnRepository.save(any(KanbanColumn.class))).thenReturn(testColumn);
+        when(columnMapper.selectById(testColumnId)).thenReturn(testColumn);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
         when(dtoConverter.toColumnDto(testColumn)).thenReturn(testColumnDto);
 
         ColumnDto result = columnService.updateColumn(testUserId, request);
@@ -212,7 +206,7 @@ class ColumnServiceImplTest {
         assertNotNull(result);
 
         ArgumentCaptor<KanbanColumn> columnCaptor = ArgumentCaptor.forClass(KanbanColumn.class);
-        verify(columnRepository, times(1)).save(columnCaptor.capture());
+        verify(columnMapper, times(1)).updateById(columnCaptor.capture());
         KanbanColumn savedColumn = columnCaptor.getValue();
         assertEquals("Applied", savedColumn.getName()); // 保持原值
     }
@@ -224,9 +218,8 @@ class ColumnServiceImplTest {
         request.setColumnId(testColumnId);
         request.setName("   "); // 空白字符
 
-        when(columnRepository.findById(testColumnId)).thenReturn(Optional.of(testColumn));
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
-        when(columnRepository.save(any(KanbanColumn.class))).thenReturn(testColumn);
+        when(columnMapper.selectById(testColumnId)).thenReturn(testColumn);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
         when(dtoConverter.toColumnDto(testColumn)).thenReturn(testColumnDto);
 
         ColumnDto result = columnService.updateColumn(testUserId, request);
@@ -234,7 +227,7 @@ class ColumnServiceImplTest {
         assertNotNull(result);
 
         ArgumentCaptor<KanbanColumn> columnCaptor = ArgumentCaptor.forClass(KanbanColumn.class);
-        verify(columnRepository, times(1)).save(columnCaptor.capture());
+        verify(columnMapper, times(1)).updateById(columnCaptor.capture());
         KanbanColumn savedColumn = columnCaptor.getValue();
         assertEquals("Applied", savedColumn.getName()); // 保持原值
     }
@@ -249,16 +242,16 @@ class ColumnServiceImplTest {
         request.setColumnId(nonExistentColumnId);
         request.setName("New Name");
 
-        when(columnRepository.findById(nonExistentColumnId)).thenReturn(Optional.empty());
+        when(columnMapper.selectById(nonExistentColumnId)).thenReturn(null);
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             columnService.updateColumn(testUserId, request);
         });
 
         assertEquals("列 不存在: id = '" + nonExistentColumnId + "'", exception.getMessage());
-        verify(columnRepository, times(1)).findById(nonExistentColumnId);
-        verify(boardRepository, never()).existsByIdAndUserId(any(), any());
-        verify(columnRepository, never()).save(any());
+        verify(columnMapper, times(1)).selectById(nonExistentColumnId);
+        verify(boardMapper, never()).existsByIdAndUserId(any(UUID.class), any(String.class));
+        verify(columnMapper, never()).updateById(any(KanbanColumn.class));
     }
 
     @Test
@@ -268,16 +261,16 @@ class ColumnServiceImplTest {
         request.setColumnId(testColumnId);
         request.setName("New Name");
 
-        when(columnRepository.findById(testColumnId)).thenReturn(Optional.of(testColumn));
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(false);
+        when(columnMapper.selectById(testColumnId)).thenReturn(testColumn);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(false);
 
         UnauthorizedException exception = assertThrows(UnauthorizedException.class, () -> {
             columnService.updateColumn(testUserId, request);
         });
 
         assertEquals("无权更新该列", exception.getMessage());
-        verify(columnRepository, times(1)).findById(testColumnId);
-        verify(boardRepository, times(1)).existsByIdAndUserId(testBoardId, testUserId);
-        verify(columnRepository, never()).save(any());
+        verify(columnMapper, times(1)).selectById(testColumnId);
+        verify(boardMapper, times(1)).existsByIdAndUserId(testBoardId, testUserId);
+        verify(columnMapper, never()).updateById(any(KanbanColumn.class));
     }
 }

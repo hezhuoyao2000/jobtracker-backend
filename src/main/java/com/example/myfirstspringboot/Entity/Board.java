@@ -1,40 +1,27 @@
 package com.example.myfirstspringboot.Entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
 import java.time.Instant;
 import java.util.UUID;
 
-@Entity
-@Table(name = "board")
+@TableName("board")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Board {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @TableId(type = IdType.INPUT)
     private UUID id;
 
-    @Column(name = "user_id", nullable = false)
+    @TableField("user_id")
     private String userId;
 
-    @Column(nullable = false)
+    @TableField("name")
     private String name;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Instant updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = Instant.now();
-        updatedAt = Instant.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
-    }
 }

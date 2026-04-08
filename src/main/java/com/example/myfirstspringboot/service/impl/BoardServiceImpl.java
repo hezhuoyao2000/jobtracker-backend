@@ -7,9 +7,9 @@ import com.example.myfirstspringboot.dto.request.CreateBoardRequest;
 import com.example.myfirstspringboot.dto.request.LoadBoardRequest;
 import com.example.myfirstspringboot.dto.response.BoardDataDto;
 import com.example.myfirstspringboot.dto.response.BoardDto;
-import com.example.myfirstspringboot.repository.BoardRepository;
-import com.example.myfirstspringboot.repository.JobCardRepository;
-import com.example.myfirstspringboot.repository.KanbanColumnRepository;
+import com.example.myfirstspringboot.mapper.BoardMapper;
+import com.example.myfirstspringboot.mapper.JobCardMapper;
+import com.example.myfirstspringboot.mapper.KanbanColumnMapper;
 import com.example.myfirstspringboot.service.BoardService;
 import com.example.myfirstspringboot.util.DtoConverter;
 import com.example.myfirstspringboot.exception.ResourceNotFoundException;
@@ -30,9 +30,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class BoardServiceImpl implements BoardService {
 
-    private final BoardRepository boardRepository;
-    private final KanbanColumnRepository columnRepository;
-    private final JobCardRepository jobCardRepository;
+    private final BoardMapper boardMapper;
+    private final KanbanColumnMapper columnMapper;
+    private final JobCardMapper jobCardMapper;
     private final DtoConverter dtoConverter;
 
     // ========== 方法实现 ==========
@@ -49,6 +49,7 @@ public class BoardServiceImpl implements BoardService {
 
         // 步骤 1: 创建 Board 实体
         Board board = new Board();
+        board.setId(UUID.randomUUID());
         board.setUserId(userId);
 
         // 步骤 2: 设置看板名称（如果为空，使用默认名称）
@@ -59,7 +60,8 @@ public class BoardServiceImpl implements BoardService {
         board.setName(boardName);
 
         // 步骤 3: 保存到数据库
-        Board savedBoard = boardRepository.save(board);
+        boardMapper.insert(board);
+        Board savedBoard = board;
 
         // 步骤 4: 创建默认的 5 个列
         createDefaultColumns(savedBoard.getId());
@@ -82,19 +84,23 @@ public class BoardServiceImpl implements BoardService {
         Board board;
         if (boardId == null) {
             // 场景 A: 没有指定 boardId，加载用户的第一个看板
-            board = boardRepository.findFirstByUserIdOrderByCreatedAtAsc(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("没有找到该用户的看板"));
+            board = boardMapper.selectFirstByUserIdOrderByCreatedAtAsc(userId);
+            if (board == null) {
+                throw new ResourceNotFoundException("没有找到该用户的看板");
+            }
         } else {
             // 场景 B: 指定了 boardId，加载该看板并校验权限
-            board = boardRepository.findByIdAndUserId(boardId, userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("看板不存在或不属于该用户"));
+            board = boardMapper.selectByIdAndUserId(boardId, userId);
+            if (board == null) {
+                throw new ResourceNotFoundException("看板不存在或不属于该用户");
+            }
         }
 
         // 查询该看板的所有列（按 sortOrder 排序）
-        List<KanbanColumn> columns = columnRepository.findByBoardIdOrderBySortOrderAsc(board.getId());
+        List<KanbanColumn> columns = columnMapper.selectByBoardIdOrderBySortOrderAsc(board.getId());
 
         // 查询该看板的所有卡片（未删除的）
-        List<JobCard> cards = jobCardRepository.findByBoardIdAndDeletedAtIsNull(board.getId());
+        List<JobCard> cards = jobCardMapper.selectByBoardIdAndDeletedAtIsNull(board.getId());
 
         // 组装 BoardDataDto 并返回
         return dtoConverter.toBoardDataDto(board, columns, cards);
@@ -120,13 +126,14 @@ public class BoardServiceImpl implements BoardService {
         // 批量创建列
         for (int i = 0; i < defaultColumnNames.size(); i++) {
             KanbanColumn column = new KanbanColumn();
+            column.setId(UUID.randomUUID());
             column.setBoardId(boardId);
             column.setName(defaultColumnNames.get(i));
             column.setSortOrder(i);  // 排序：0, 1, 2, 3, 4
             column.setIsDefault(true);
 
             // 保存到数据库
-            columnRepository.save(column);
+            columnMapper.insert(column);
         }
     }
 }

@@ -28,7 +28,7 @@
 ### 技术栈
 
 - Java 17 + Spring Boot 3.5.5
-- Spring Data JPA + PostgreSQL
+- MyBatis Plus + PostgreSQL
 - JWT 认证（jjwt）
 - SpringDoc OpenAPI（Swagger UI）
 

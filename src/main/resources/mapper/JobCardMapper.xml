@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.myfirstspringboot.mapper.JobCardMapper">
+
+    <select id="selectByBoardIdAndDeletedAtIsNull" resultType="com.example.myfirstspringboot.Entity.JobCard">
+        SELECT * FROM job_card WHERE board_id = #{boardId, javaType=java.util.UUID, jdbcType=OTHER} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByIdAndDeletedAtIsNull" resultType="com.example.myfirstspringboot.Entity.JobCard">
+        SELECT * FROM job_card WHERE id = #{id, javaType=java.util.UUID, jdbcType=OTHER} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByBoardId" resultType="com.example.myfirstspringboot.Entity.JobCard">
+        SELECT * FROM job_card WHERE board_id = #{boardId, javaType=java.util.UUID, jdbcType=OTHER}
+    </select>
+</mapper>

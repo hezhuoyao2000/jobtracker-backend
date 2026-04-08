@@ -9,9 +9,9 @@ import com.example.myfirstspringboot.dto.response.JobCardDto;
 import com.example.myfirstspringboot.exception.BusinessException;
 import com.example.myfirstspringboot.exception.ResourceNotFoundException;
 import com.example.myfirstspringboot.exception.UnauthorizedException;
-import com.example.myfirstspringboot.repository.BoardRepository;
-import com.example.myfirstspringboot.repository.JobCardRepository;
-import com.example.myfirstspringboot.repository.KanbanColumnRepository;
+import com.example.myfirstspringboot.mapper.BoardMapper;
+import com.example.myfirstspringboot.mapper.JobCardMapper;
+import com.example.myfirstspringboot.mapper.KanbanColumnMapper;
 import com.example.myfirstspringboot.service.JobCardService;
 import com.example.myfirstspringboot.util.DtoConverter;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -32,9 +32,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class JobCardServiceImpl implements JobCardService {
 
-    private final JobCardRepository jobCardRepository;
-    private final BoardRepository boardRepository;
-    private final KanbanColumnRepository columnRepository;
+    private final JobCardMapper jobCardMapper;
+    private final BoardMapper boardMapper;
+    private final KanbanColumnMapper columnMapper;
     private final DtoConverter dtoConverter;
     private final ObjectMapper objectMapper;
 
@@ -52,14 +52,14 @@ public class JobCardServiceImpl implements JobCardService {
         log.info("创建卡片: boardId={}, statusId={}, userId={}", boardId, statusId, userId);
 
         // 步骤 1: 校验看板属于当前用户
-        boolean boardExists = boardRepository.existsByIdAndUserId(boardId, userId);
+        boolean boardExists = boardMapper.existsByIdAndUserId(boardId, userId);
         if (!boardExists) {
             log.warn("无权创建卡片: boardId={}, userId={}", boardId, userId);
             throw new UnauthorizedException("无权在该看板创建卡片");
         }
 
         // 步骤 2: 校验 statusId 对应的列属于该看板
-        boolean columnExists = columnRepository.existsByIdAndBoardId(statusId, boardId);
+        boolean columnExists = columnMapper.existsByIdAndBoardId(statusId, boardId);
         if (!columnExists) {
             log.warn("列不存在: statusId={}, boardId={}", statusId, boardId);
             throw new ResourceNotFoundException("指定的列不存在或不属于该看板");
@@ -67,6 +67,7 @@ public class JobCardServiceImpl implements JobCardService {
 
         // 步骤 3: 构建 JobCard
         JobCard jobCard = new JobCard();
+        jobCard.setId(UUID.randomUUID());
         jobCard.setBoardId(boardId);
         jobCard.setStatusId(statusId);
         jobCard.setJobTitle(request.getJobTitle());
@@ -99,11 +100,11 @@ public class JobCardServiceImpl implements JobCardService {
         }
 
         // 步骤 4: 保存到数据库
-        JobCard savedCard = jobCardRepository.save(jobCard);
-        log.info("卡片创建成功: cardId={}", savedCard.getId());
+        jobCardMapper.insert(jobCard);
+        log.info("卡片创建成功: cardId={}", jobCard.getId());
 
         // 步骤 5: 转换为 DTO 并返回
-        return dtoConverter.toJobCardDto(savedCard);
+        return dtoConverter.toJobCardDto(jobCard);
     }
 
     /**
@@ -119,14 +120,14 @@ public class JobCardServiceImpl implements JobCardService {
         log.info("更新卡片: cardId={}, userId={}", cardId, userId);
 
         // 步骤 1: 查询卡片（未删除的）并校验权限
-        JobCard jobCard = jobCardRepository.findByIdAndDeletedAtIsNull(cardId)
-                .orElseThrow(() -> {
-                    log.warn("卡片不存在: cardId={}", cardId);
-                    return new ResourceNotFoundException("卡片", "id", cardId);
-                });
+        JobCard jobCard = jobCardMapper.selectByIdAndDeletedAtIsNull(cardId);
+        if (jobCard == null) {
+            log.warn("卡片不存在: cardId={}", cardId);
+            throw new ResourceNotFoundException("卡片", "id", cardId);
+        }
 
         UUID boardId = jobCard.getBoardId();
-        boolean boardExists = boardRepository.existsByIdAndUserId(boardId, userId);
+        boolean boardExists = boardMapper.existsByIdAndUserId(boardId, userId);
         if (!boardExists) {
             log.warn("无权更新卡片: cardId={}, boardId={}, userId={}", cardId, boardId, userId);
             throw new UnauthorizedException("无权更新该卡片");
@@ -134,7 +135,7 @@ public class JobCardServiceImpl implements JobCardService {
 
         // 步骤 2: 如果更新 statusId，校验新列属于该看板
         if (request.getStatusId() != null) {
-            boolean columnExists = columnRepository.existsByIdAndBoardId(request.getStatusId(), boardId);
+            boolean columnExists = columnMapper.existsByIdAndBoardId(request.getStatusId(), boardId);
             if (!columnExists) {
                 log.warn("目标列不存在: statusId={}", request.getStatusId());
                 throw new ResourceNotFoundException("指定的列不存在或不属于该看板");
@@ -187,11 +188,11 @@ public class JobCardServiceImpl implements JobCardService {
         }
 
         // 步骤 4: 保存到数据库
-        JobCard savedCard = jobCardRepository.save(jobCard);
+        jobCardMapper.updateById(jobCard);
         log.info("卡片更新成功: cardId={}", cardId);
 
         // 步骤 5: 转换为 DTO 并返回
-        return dtoConverter.toJobCardDto(savedCard);
+        return dtoConverter.toJobCardDto(jobCard);
     }
 
     /**
@@ -208,21 +209,21 @@ public class JobCardServiceImpl implements JobCardService {
         log.info("移动卡片: cardId={}, targetStatusId={}, userId={}", cardId, targetStatusId, userId);
 
         // 步骤 1: 查询卡片（未删除的）并校验权限
-        JobCard jobCard = jobCardRepository.findByIdAndDeletedAtIsNull(cardId)
-                .orElseThrow(() -> {
-                    log.warn("卡片不存在: cardId={}", cardId);
-                    return new ResourceNotFoundException("卡片", "id", cardId);
-                });
+        JobCard jobCard = jobCardMapper.selectByIdAndDeletedAtIsNull(cardId);
+        if (jobCard == null) {
+            log.warn("卡片不存在: cardId={}", cardId);
+            throw new ResourceNotFoundException("卡片", "id", cardId);
+        }
 
         UUID boardId = jobCard.getBoardId();
-        boolean boardExists = boardRepository.existsByIdAndUserId(boardId, userId);
+        boolean boardExists = boardMapper.existsByIdAndUserId(boardId, userId);
         if (!boardExists) {
             log.warn("无权移动卡片: cardId={}, boardId={}, userId={}", cardId, boardId, userId);
             throw new UnauthorizedException("无权移动该卡片");
         }
 
         // 步骤 2: 校验 targetStatusId 对应的列属于该看板
-        boolean columnExists = columnRepository.existsByIdAndBoardId(targetStatusId, boardId);
+        boolean columnExists = columnMapper.existsByIdAndBoardId(targetStatusId, boardId);
         if (!columnExists) {
             log.warn("目标列不存在: targetStatusId={}", targetStatusId);
             throw new ResourceNotFoundException("目标列不存在或不属于该看板");
@@ -232,11 +233,11 @@ public class JobCardServiceImpl implements JobCardService {
         jobCard.setStatusId(targetStatusId);
 
         // 步骤 4: 保存到数据库
-        JobCard savedCard = jobCardRepository.save(jobCard);
+        jobCardMapper.updateById(jobCard);
         log.info("卡片移动成功: cardId={}, newStatusId={}", cardId, targetStatusId);
 
         // 步骤 5: 转换为 DTO 并返回
-        return dtoConverter.toJobCardDto(savedCard);
+        return dtoConverter.toJobCardDto(jobCard);
     }
 
     /**
@@ -251,24 +252,21 @@ public class JobCardServiceImpl implements JobCardService {
         log.info("删除卡片: cardId={}, userId={}", cardId, userId);
 
         // 步骤 1: 查询卡片（未删除的）并校验权限
-        JobCard jobCard = jobCardRepository.findByIdAndDeletedAtIsNull(cardId)
-                .orElseThrow(() -> {
-                    log.warn("卡片不存在: cardId={}", cardId);
-                    return new ResourceNotFoundException("卡片", "id", cardId);
-                });
+        JobCard jobCard = jobCardMapper.selectByIdAndDeletedAtIsNull(cardId);
+        if (jobCard == null) {
+            log.warn("卡片不存在: cardId={}", cardId);
+            throw new ResourceNotFoundException("卡片", "id", cardId);
+        }
 
         UUID boardId = jobCard.getBoardId();
-        boolean boardExists = boardRepository.existsByIdAndUserId(boardId, userId);
+        boolean boardExists = boardMapper.existsByIdAndUserId(boardId, userId);
         if (!boardExists) {
             log.warn("无权删除卡片: cardId={}, boardId={}, userId={}", cardId, boardId, userId);
             throw new UnauthorizedException("无权删除该卡片");
         }
 
-        // 步骤 2: 设置删除时间（软删除）
-        jobCard.setDeletedAt(Instant.now());
-
-        // 步骤 3: 保存到数据库
-        jobCardRepository.save(jobCard);
+        // 步骤 2: 使用 MyBatis Plus 逻辑删除（会自动设置 deleted_at = NOW()）
+        jobCardMapper.deleteById(cardId);
         log.info("卡片删除成功: cardId={}", cardId);
     }
 }

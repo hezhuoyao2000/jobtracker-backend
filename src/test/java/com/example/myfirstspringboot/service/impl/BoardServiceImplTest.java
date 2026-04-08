@@ -10,9 +10,9 @@ import com.example.myfirstspringboot.dto.response.BoardDto;
 import com.example.myfirstspringboot.dto.response.ColumnDto;
 import com.example.myfirstspringboot.dto.response.JobCardDto;
 import com.example.myfirstspringboot.exception.ResourceNotFoundException;
-import com.example.myfirstspringboot.repository.BoardRepository;
-import com.example.myfirstspringboot.repository.JobCardRepository;
-import com.example.myfirstspringboot.repository.KanbanColumnRepository;
+import com.example.myfirstspringboot.mapper.BoardMapper;
+import com.example.myfirstspringboot.mapper.JobCardMapper;
+import com.example.myfirstspringboot.mapper.KanbanColumnMapper;
 import com.example.myfirstspringboot.util.DtoConverter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,21 +38,21 @@ import static org.mockito.Mockito.*;
  *
  * 测试说明：
  * - 使用 Mockito 框架进行单元测试
- * - 不依赖真实数据库，使用 Mock 对象模拟 Repository
- * - 全部使用 JPA 方案（Repository + DtoConverter）
+ * - 不依赖真实数据库，使用 Mock 对象模拟 Mapper
+ * - 使用 MyBatis-Plus 方案（Mapper + DtoConverter）
  */
 @ExtendWith(MockitoExtension.class)
 class BoardServiceImplTest {
 
     // ========== Mock 对象 ==========
     @Mock
-    private BoardRepository boardRepository;
+    private BoardMapper boardMapper;
 
     @Mock
-    private KanbanColumnRepository columnRepository;
+    private KanbanColumnMapper columnMapper;
 
     @Mock
-    private JobCardRepository jobCardRepository;
+    private JobCardMapper jobCardMapper;
 
     @Mock
     private DtoConverter dtoConverter;
@@ -93,8 +92,7 @@ class BoardServiceImplTest {
     @Test
     @DisplayName("测试创建看板 - 指定名称")
     void testCreateBoard_WithName() {
-        when(boardRepository.save(any(Board.class))).thenReturn(testBoard);
-        when(dtoConverter.toBoardDto(testBoard)).thenReturn(testBoardDto);
+        when(dtoConverter.toBoardDto(any(Board.class))).thenReturn(testBoardDto);
 
         BoardDto result = boardService.createBoard(testUserId, createBoardRequest);
 
@@ -103,9 +101,9 @@ class BoardServiceImplTest {
         assertEquals(testUserId, result.getUserId());
         assertEquals("Test Board", result.getName());
 
-        verify(boardRepository, times(1)).save(any(Board.class));
-        verify(dtoConverter, times(1)).toBoardDto(testBoard);
-        verify(columnRepository, times(5)).save(any(KanbanColumn.class));
+        verify(boardMapper, times(1)).insert(any(Board.class));
+        verify(dtoConverter, times(1)).toBoardDto(any(Board.class));
+        verify(columnMapper, times(5)).insert(any(KanbanColumn.class));
     }
 
     @Test
@@ -113,7 +111,6 @@ class BoardServiceImplTest {
     void testCreateBoard_WithEmptyName_UsesDefaultName() {
         createBoardRequest.setName(null);
 
-        when(boardRepository.save(any(Board.class))).thenReturn(testBoard);
         when(dtoConverter.toBoardDto(any(Board.class))).thenReturn(testBoardDto);
 
         BoardDto result = boardService.createBoard(testUserId, createBoardRequest);
@@ -121,7 +118,7 @@ class BoardServiceImplTest {
         assertNotNull(result);
 
         ArgumentCaptor<Board> boardCaptor = ArgumentCaptor.forClass(Board.class);
-        verify(boardRepository, times(1)).save(boardCaptor.capture());
+        verify(boardMapper, times(1)).insert(boardCaptor.capture());
 
         Board savedBoard = boardCaptor.getValue();
         assertEquals("My Job Tracker", savedBoard.getName());
@@ -132,7 +129,6 @@ class BoardServiceImplTest {
     void testCreateBoard_WithBlankName_UsesDefaultName() {
         createBoardRequest.setName("   ");
 
-        when(boardRepository.save(any(Board.class))).thenReturn(testBoard);
         when(dtoConverter.toBoardDto(any(Board.class))).thenReturn(testBoardDto);
 
         BoardDto result = boardService.createBoard(testUserId, createBoardRequest);
@@ -140,7 +136,7 @@ class BoardServiceImplTest {
         assertNotNull(result);
 
         ArgumentCaptor<Board> boardCaptor = ArgumentCaptor.forClass(Board.class);
-        verify(boardRepository, times(1)).save(boardCaptor.capture());
+        verify(boardMapper, times(1)).insert(boardCaptor.capture());
 
         Board savedBoard = boardCaptor.getValue();
         assertEquals("My Job Tracker", savedBoard.getName());
@@ -149,13 +145,17 @@ class BoardServiceImplTest {
     @Test
     @DisplayName("测试创建看板 - 验证默认列的创建")
     void testCreateBoard_VerifyDefaultColumns() {
-        when(boardRepository.save(any(Board.class))).thenReturn(testBoard);
         when(dtoConverter.toBoardDto(any(Board.class))).thenReturn(testBoardDto);
 
         boardService.createBoard(testUserId, createBoardRequest);
 
+        // 捕获插入的 Board，获取生成的 boardId
+        ArgumentCaptor<Board> boardCaptor = ArgumentCaptor.forClass(Board.class);
+        verify(boardMapper, times(1)).insert(boardCaptor.capture());
+        UUID generatedBoardId = boardCaptor.getValue().getId();
+
         ArgumentCaptor<KanbanColumn> columnCaptor = ArgumentCaptor.forClass(KanbanColumn.class);
-        verify(columnRepository, times(5)).save(columnCaptor.capture());
+        verify(columnMapper, times(5)).insert(columnCaptor.capture());
 
         List<KanbanColumn> savedColumns = columnCaptor.getAllValues();
         assertEquals(5, savedColumns.size());
@@ -167,14 +167,13 @@ class BoardServiceImplTest {
         for (int i = 0; i < savedColumns.size(); i++) {
             KanbanColumn column = savedColumns.get(i);
             assertEquals(expectedColumnNames.get(i), column.getName());
-            assertEquals(testBoardId, column.getBoardId());
+            assertEquals(generatedBoardId, column.getBoardId());
             assertEquals(i, column.getSortOrder());
             assertTrue(column.getIsDefault());
         }
     }
 
     // ============ 加载看板测试 ============ //
-    // JPA 方案：3 次查询 + DtoConverter 组装
 
     @Test
     @DisplayName("测试加载看板 - 指定 boardId 成功")
@@ -223,13 +222,10 @@ class BoardServiceImplTest {
         expectedData.setColumns(Arrays.asList(colDto1));
         expectedData.setCards(Arrays.asList(cardDto1));
 
-        // Mock Repository
-        when(boardRepository.findByIdAndUserId(boardId, userId))
-                .thenReturn(Optional.of(board));
-        when(columnRepository.findByBoardIdOrderBySortOrderAsc(boardId))
-                .thenReturn(columns);
-        when(jobCardRepository.findByBoardIdAndDeletedAtIsNull(boardId))
-                .thenReturn(cards);
+        // Mock Mapper
+        when(boardMapper.selectByIdAndUserId(boardId, userId)).thenReturn(board);
+        when(columnMapper.selectByBoardIdOrderBySortOrderAsc(boardId)).thenReturn(columns);
+        when(jobCardMapper.selectByBoardIdAndDeletedAtIsNull(boardId)).thenReturn(cards);
 
         // Mock DtoConverter
         when(dtoConverter.toBoardDataDto(board, columns, cards)).thenReturn(expectedData);
@@ -241,9 +237,9 @@ class BoardServiceImplTest {
         assertEquals(1, result.getColumns().size());
         assertEquals(1, result.getCards().size());
 
-        verify(boardRepository, times(1)).findByIdAndUserId(boardId, userId);
-        verify(columnRepository, times(1)).findByBoardIdOrderBySortOrderAsc(boardId);
-        verify(jobCardRepository, times(1)).findByBoardIdAndDeletedAtIsNull(boardId);
+        verify(boardMapper, times(1)).selectByIdAndUserId(boardId, userId);
+        verify(columnMapper, times(1)).selectByBoardIdOrderBySortOrderAsc(boardId);
+        verify(jobCardMapper, times(1)).selectByBoardIdAndDeletedAtIsNull(boardId);
     }
 
     @Test
@@ -268,21 +264,17 @@ class BoardServiceImplTest {
         expectedData.setColumns(Collections.emptyList());
         expectedData.setCards(Collections.emptyList());
 
-        when(boardRepository.findFirstByUserIdOrderByCreatedAtAsc(userId))
-                .thenReturn(Optional.of(board));
-        when(columnRepository.findByBoardIdOrderBySortOrderAsc(boardId))
-                .thenReturn(Collections.emptyList());
-        when(jobCardRepository.findByBoardIdAndDeletedAtIsNull(boardId))
-                .thenReturn(Collections.emptyList());
-        when(dtoConverter.toBoardDataDto(board, Collections.emptyList(), Collections.emptyList()))
-                .thenReturn(expectedData);
+        when(boardMapper.selectFirstByUserIdOrderByCreatedAtAsc(userId)).thenReturn(board);
+        when(columnMapper.selectByBoardIdOrderBySortOrderAsc(boardId)).thenReturn(Collections.emptyList());
+        when(jobCardMapper.selectByBoardIdAndDeletedAtIsNull(boardId)).thenReturn(Collections.emptyList());
+        when(dtoConverter.toBoardDataDto(board, Collections.emptyList(), Collections.emptyList())).thenReturn(expectedData);
 
         BoardDataDto result = boardService.loadBoard(userId, request);
 
         assertNotNull(result);
         assertEquals(boardId, result.getBoard().getId());
 
-        verify(boardRepository, times(1)).findFirstByUserIdOrderByCreatedAtAsc(userId);
+        verify(boardMapper, times(1)).selectFirstByUserIdOrderByCreatedAtAsc(userId);
     }
 
     @Test
@@ -293,8 +285,7 @@ class BoardServiceImplTest {
         LoadBoardRequest request = new LoadBoardRequest();
         request.setBoardId(nonExistentBoardId);
 
-        when(boardRepository.findByIdAndUserId(nonExistentBoardId, userId))
-                .thenReturn(Optional.empty());
+        when(boardMapper.selectByIdAndUserId(nonExistentBoardId, userId)).thenReturn(null);
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             boardService.loadBoard(userId, request);
@@ -309,8 +300,7 @@ class BoardServiceImplTest {
         String userId = "test-user-123";
         LoadBoardRequest request = new LoadBoardRequest();
 
-        when(boardRepository.findFirstByUserIdOrderByCreatedAtAsc(userId))
-                .thenReturn(Optional.empty());
+        when(boardMapper.selectFirstByUserIdOrderByCreatedAtAsc(userId)).thenReturn(null);
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             boardService.loadBoard(userId, request);

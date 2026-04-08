@@ -9,9 +9,9 @@ import com.example.myfirstspringboot.dto.response.JobCardDto;
 import com.example.myfirstspringboot.exception.BusinessException;
 import com.example.myfirstspringboot.exception.ResourceNotFoundException;
 import com.example.myfirstspringboot.exception.UnauthorizedException;
-import com.example.myfirstspringboot.repository.BoardRepository;
-import com.example.myfirstspringboot.repository.JobCardRepository;
-import com.example.myfirstspringboot.repository.KanbanColumnRepository;
+import com.example.myfirstspringboot.mapper.BoardMapper;
+import com.example.myfirstspringboot.mapper.JobCardMapper;
+import com.example.myfirstspringboot.mapper.KanbanColumnMapper;
 import com.example.myfirstspringboot.util.DtoConverter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,20 +31,20 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * JobCardServiceImpl 单元测试类
+ * JobCardServiceImpl 单元测试类（MyBatis-Plus 版本）
  */
 @ExtendWith(MockitoExtension.class)
 class JobCardServiceImplTest {
 
     // ========== Mock 对象 ==========
     @Mock
-    private JobCardRepository jobCardRepository;
+    private JobCardMapper jobCardMapper;
 
     @Mock
-    private BoardRepository boardRepository;
+    private BoardMapper boardMapper;
 
     @Mock
-    private KanbanColumnRepository columnRepository;
+    private KanbanColumnMapper columnMapper;
 
     @Mock
     private DtoConverter dtoConverter;
@@ -118,12 +118,11 @@ class JobCardServiceImplTest {
         request.setExtra(new HashMap<String, Object>() {{ put("salary", "150k"); }});
 
         // Mock
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
-        when(columnRepository.existsByIdAndBoardId(testStatusId, testBoardId)).thenReturn(true);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
+        when(columnMapper.existsByIdAndBoardId(testStatusId, testBoardId)).thenReturn(true);
         when(objectMapper.writeValueAsString(request.getTags())).thenReturn("[\"java\", \"spring\"]");
         when(objectMapper.writeValueAsString(request.getExtra())).thenReturn("{\"salary\": \"150k\"}");
-        when(jobCardRepository.save(any(JobCard.class))).thenReturn(testJobCard);
-        when(dtoConverter.toJobCardDto(testJobCard)).thenReturn(testJobCardDto);
+        when(dtoConverter.toJobCardDto(any(JobCard.class))).thenReturn(testJobCardDto);
 
         // 执行
         JobCardDto result = jobCardService.createCard(testUserId, request);
@@ -131,11 +130,11 @@ class JobCardServiceImplTest {
         // 验证
         assertNotNull(result);
         assertEquals(testCardId, result.getId());
-        verify(boardRepository, times(1)).existsByIdAndUserId(testBoardId, testUserId);
-        verify(columnRepository, times(1)).existsByIdAndBoardId(testStatusId, testBoardId);
+        verify(boardMapper, times(1)).existsByIdAndUserId(testBoardId, testUserId);
+        verify(columnMapper, times(1)).existsByIdAndBoardId(testStatusId, testBoardId);
 
         ArgumentCaptor<JobCard> cardCaptor = ArgumentCaptor.forClass(JobCard.class);
-        verify(jobCardRepository, times(1)).save(cardCaptor.capture());
+        verify(jobCardMapper, times(1)).insert(cardCaptor.capture());
         JobCard savedCard = cardCaptor.getValue();
         assertEquals("Software Engineer", savedCard.getJobTitle());
         assertEquals("Google", savedCard.getCompanyName());
@@ -152,15 +151,15 @@ class JobCardServiceImplTest {
         request.setJobTitle("Software Engineer");
         request.setCompanyName("Google");
 
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(false);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(false);
 
         UnauthorizedException exception = assertThrows(UnauthorizedException.class, () -> {
             jobCardService.createCard(testUserId, request);
         });
 
         assertEquals("无权在该看板创建卡片", exception.getMessage());
-        verify(columnRepository, never()).existsByIdAndBoardId(any(), any());
-        verify(jobCardRepository, never()).save(any());
+        verify(columnMapper, never()).existsByIdAndBoardId(any(UUID.class), any(UUID.class));
+        verify(jobCardMapper, never()).insert(any(JobCard.class));
     }
 
     @Test
@@ -172,15 +171,15 @@ class JobCardServiceImplTest {
         request.setJobTitle("Software Engineer");
         request.setCompanyName("Google");
 
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
-        when(columnRepository.existsByIdAndBoardId(testStatusId, testBoardId)).thenReturn(false);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
+        when(columnMapper.existsByIdAndBoardId(testStatusId, testBoardId)).thenReturn(false);
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             jobCardService.createCard(testUserId, request);
         });
 
         assertEquals("指定的列不存在或不属于该看板", exception.getMessage());
-        verify(jobCardRepository, never()).save(any());
+        verify(jobCardMapper, never()).insert(any(JobCard.class));
     }
 
     // ============ 更新卡片测试 ============ //
@@ -193,19 +192,18 @@ class JobCardServiceImplTest {
         request.setJobTitle("Updated Title");
         request.setCompanyName("Updated Company");
 
-        when(jobCardRepository.findByIdAndDeletedAtIsNull(testCardId)).thenReturn(Optional.of(testJobCard));
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
-        when(jobCardRepository.save(any(JobCard.class))).thenReturn(testJobCard);
-        when(dtoConverter.toJobCardDto(testJobCard)).thenReturn(testJobCardDto);
+        when(jobCardMapper.selectByIdAndDeletedAtIsNull(testCardId)).thenReturn(testJobCard);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
+        when(dtoConverter.toJobCardDto(any(JobCard.class))).thenReturn(testJobCardDto);
 
         JobCardDto result = jobCardService.updateCard(testUserId, request);
 
         assertNotNull(result);
-        verify(jobCardRepository, times(1)).findByIdAndDeletedAtIsNull(testCardId);
-        verify(boardRepository, times(1)).existsByIdAndUserId(testBoardId, testUserId);
+        verify(jobCardMapper, times(1)).selectByIdAndDeletedAtIsNull(testCardId);
+        verify(boardMapper, times(1)).existsByIdAndUserId(testBoardId, testUserId);
 
         ArgumentCaptor<JobCard> cardCaptor = ArgumentCaptor.forClass(JobCard.class);
-        verify(jobCardRepository, times(1)).save(cardCaptor.capture());
+        verify(jobCardMapper, times(1)).updateById(cardCaptor.capture());
         JobCard savedCard = cardCaptor.getValue();
         assertEquals("Updated Title", savedCard.getJobTitle());
         assertEquals("Updated Company", savedCard.getCompanyName());
@@ -219,19 +217,18 @@ class JobCardServiceImplTest {
         request.setCardId(testCardId);
         request.setStatusId(newStatusId);
 
-        when(jobCardRepository.findByIdAndDeletedAtIsNull(testCardId)).thenReturn(Optional.of(testJobCard));
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
-        when(columnRepository.existsByIdAndBoardId(newStatusId, testBoardId)).thenReturn(true);
-        when(jobCardRepository.save(any(JobCard.class))).thenReturn(testJobCard);
-        when(dtoConverter.toJobCardDto(testJobCard)).thenReturn(testJobCardDto);
+        when(jobCardMapper.selectByIdAndDeletedAtIsNull(testCardId)).thenReturn(testJobCard);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
+        when(columnMapper.existsByIdAndBoardId(newStatusId, testBoardId)).thenReturn(true);
+        when(dtoConverter.toJobCardDto(any(JobCard.class))).thenReturn(testJobCardDto);
 
         JobCardDto result = jobCardService.updateCard(testUserId, request);
 
         assertNotNull(result);
-        verify(columnRepository, times(1)).existsByIdAndBoardId(newStatusId, testBoardId);
+        verify(columnMapper, times(1)).existsByIdAndBoardId(newStatusId, testBoardId);
 
         ArgumentCaptor<JobCard> cardCaptor = ArgumentCaptor.forClass(JobCard.class);
-        verify(jobCardRepository, times(1)).save(cardCaptor.capture());
+        verify(jobCardMapper, times(1)).updateById(cardCaptor.capture());
         JobCard savedCard = cardCaptor.getValue();
         assertEquals(newStatusId, savedCard.getStatusId());
     }
@@ -244,15 +241,15 @@ class JobCardServiceImplTest {
         request.setCardId(nonExistentCardId);
         request.setJobTitle("Updated Title");
 
-        when(jobCardRepository.findByIdAndDeletedAtIsNull(nonExistentCardId)).thenReturn(Optional.empty());
+        when(jobCardMapper.selectByIdAndDeletedAtIsNull(nonExistentCardId)).thenReturn(null);
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             jobCardService.updateCard(testUserId, request);
         });
 
         assertEquals("卡片 不存在: id = '" + nonExistentCardId + "'", exception.getMessage());
-        verify(boardRepository, never()).existsByIdAndUserId(any(), any());
-        verify(jobCardRepository, never()).save(any());
+        verify(boardMapper, never()).existsByIdAndUserId(any(UUID.class), any(String.class));
+        verify(jobCardMapper, never()).updateById(any(JobCard.class));
     }
 
     @Test
@@ -263,16 +260,16 @@ class JobCardServiceImplTest {
         request.setCardId(testCardId);
         request.setStatusId(invalidStatusId);
 
-        when(jobCardRepository.findByIdAndDeletedAtIsNull(testCardId)).thenReturn(Optional.of(testJobCard));
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
-        when(columnRepository.existsByIdAndBoardId(invalidStatusId, testBoardId)).thenReturn(false);
+        when(jobCardMapper.selectByIdAndDeletedAtIsNull(testCardId)).thenReturn(testJobCard);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
+        when(columnMapper.existsByIdAndBoardId(invalidStatusId, testBoardId)).thenReturn(false);
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             jobCardService.updateCard(testUserId, request);
         });
 
         assertEquals("指定的列不存在或不属于该看板", exception.getMessage());
-        verify(jobCardRepository, never()).save(any());
+        verify(jobCardMapper, never()).updateById(any(JobCard.class));
     }
 
     // ============ 移动卡片测试 ============ //
@@ -285,21 +282,20 @@ class JobCardServiceImplTest {
         request.setCardId(testCardId);
         request.setTargetStatusId(newStatusId);
 
-        when(jobCardRepository.findByIdAndDeletedAtIsNull(testCardId)).thenReturn(Optional.of(testJobCard));
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
-        when(columnRepository.existsByIdAndBoardId(newStatusId, testBoardId)).thenReturn(true);
-        when(jobCardRepository.save(any(JobCard.class))).thenReturn(testJobCard);
-        when(dtoConverter.toJobCardDto(testJobCard)).thenReturn(testJobCardDto);
+        when(jobCardMapper.selectByIdAndDeletedAtIsNull(testCardId)).thenReturn(testJobCard);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
+        when(columnMapper.existsByIdAndBoardId(newStatusId, testBoardId)).thenReturn(true);
+        when(dtoConverter.toJobCardDto(any(JobCard.class))).thenReturn(testJobCardDto);
 
         JobCardDto result = jobCardService.moveCard(testUserId, request);
 
         assertNotNull(result);
-        verify(jobCardRepository, times(1)).findByIdAndDeletedAtIsNull(testCardId);
-        verify(boardRepository, times(1)).existsByIdAndUserId(testBoardId, testUserId);
-        verify(columnRepository, times(1)).existsByIdAndBoardId(newStatusId, testBoardId);
+        verify(jobCardMapper, times(1)).selectByIdAndDeletedAtIsNull(testCardId);
+        verify(boardMapper, times(1)).existsByIdAndUserId(testBoardId, testUserId);
+        verify(columnMapper, times(1)).existsByIdAndBoardId(newStatusId, testBoardId);
 
         ArgumentCaptor<JobCard> cardCaptor = ArgumentCaptor.forClass(JobCard.class);
-        verify(jobCardRepository, times(1)).save(cardCaptor.capture());
+        verify(jobCardMapper, times(1)).updateById(cardCaptor.capture());
         JobCard savedCard = cardCaptor.getValue();
         assertEquals(newStatusId, savedCard.getStatusId());
     }
@@ -312,16 +308,16 @@ class JobCardServiceImplTest {
         request.setCardId(testCardId);
         request.setTargetStatusId(invalidStatusId);
 
-        when(jobCardRepository.findByIdAndDeletedAtIsNull(testCardId)).thenReturn(Optional.of(testJobCard));
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
-        when(columnRepository.existsByIdAndBoardId(invalidStatusId, testBoardId)).thenReturn(false);
+        when(jobCardMapper.selectByIdAndDeletedAtIsNull(testCardId)).thenReturn(testJobCard);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
+        when(columnMapper.existsByIdAndBoardId(invalidStatusId, testBoardId)).thenReturn(false);
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             jobCardService.moveCard(testUserId, request);
         });
 
         assertEquals("目标列不存在或不属于该看板", exception.getMessage());
-        verify(jobCardRepository, never()).save(any());
+        verify(jobCardMapper, never()).updateById(any(JobCard.class));
     }
 
     // ============ 删除卡片测试 ============ //
@@ -332,18 +328,17 @@ class JobCardServiceImplTest {
         DeleteCardRequest request = new DeleteCardRequest();
         request.setCardId(testCardId);
 
-        when(jobCardRepository.findByIdAndDeletedAtIsNull(testCardId)).thenReturn(Optional.of(testJobCard));
-        when(boardRepository.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
-        when(jobCardRepository.save(any(JobCard.class))).thenReturn(testJobCard);
+        when(jobCardMapper.selectByIdAndDeletedAtIsNull(testCardId)).thenReturn(testJobCard);
+        when(boardMapper.existsByIdAndUserId(testBoardId, testUserId)).thenReturn(true);
 
         // 执行（无返回值）
         assertDoesNotThrow(() -> jobCardService.deleteCard(testUserId, request));
 
-        verify(jobCardRepository, times(1)).findByIdAndDeletedAtIsNull(testCardId);
-        verify(boardRepository, times(1)).existsByIdAndUserId(testBoardId, testUserId);
+        verify(jobCardMapper, times(1)).selectByIdAndDeletedAtIsNull(testCardId);
+        verify(boardMapper, times(1)).existsByIdAndUserId(testBoardId, testUserId);
 
         ArgumentCaptor<JobCard> cardCaptor = ArgumentCaptor.forClass(JobCard.class);
-        verify(jobCardRepository, times(1)).save(cardCaptor.capture());
+        verify(jobCardMapper, times(1)).updateById(cardCaptor.capture());
         JobCard savedCard = cardCaptor.getValue();
         assertNotNull(savedCard.getDeletedAt());
     }
@@ -355,13 +350,13 @@ class JobCardServiceImplTest {
         DeleteCardRequest request = new DeleteCardRequest();
         request.setCardId(nonExistentCardId);
 
-        when(jobCardRepository.findByIdAndDeletedAtIsNull(nonExistentCardId)).thenReturn(Optional.empty());
+        when(jobCardMapper.selectByIdAndDeletedAtIsNull(nonExistentCardId)).thenReturn(null);
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             jobCardService.deleteCard(testUserId, request);
         });
 
         assertEquals("卡片 不存在: id = '" + nonExistentCardId + "'", exception.getMessage());
-        verify(jobCardRepository, never()).save(any());
+        verify(jobCardMapper, never()).updateById(any(JobCard.class));
     }
 }

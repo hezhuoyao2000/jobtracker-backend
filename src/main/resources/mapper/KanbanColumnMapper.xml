@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.myfirstspringboot.mapper.KanbanColumnMapper">
+
+    <select id="selectByBoardIdOrderBySortOrderAsc" resultType="com.example.myfirstspringboot.Entity.KanbanColumn">
+        SELECT * FROM kanban_column WHERE board_id = #{boardId, javaType=java.util.UUID, jdbcType=OTHER} ORDER BY sort_order ASC
+    </select>
+
+    <select id="existsByIdAndBoardId" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM kanban_column WHERE id = #{columnId, javaType=java.util.UUID, jdbcType=OTHER} AND board_id = #{boardId, javaType=java.util.UUID, jdbcType=OTHER})
+    </select>
+</mapper>

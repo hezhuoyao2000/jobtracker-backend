@@ -31,7 +31,7 @@
 ### 后端框架
 - **Java 17** - 编程语言
 - **Spring Boot 3.5.5** - 应用框架
-- **Spring Data JPA** - 数据访问层
+- **MyBatis Plus** - 数据访问层（支持复杂SQL、逻辑删除）
 - **PostgreSQL** - 数据库（UUID 主键、jsonb 字段支持）
 
 ### 安全与认证

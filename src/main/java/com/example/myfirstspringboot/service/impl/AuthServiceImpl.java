@@ -1,5 +1,6 @@
 package com.example.myfirstspringboot.service.impl;
 
+import com.example.myfirstspringboot.Entity.Board;
 import com.example.myfirstspringboot.Entity.User;
 import com.example.myfirstspringboot.dto.request.CreateBoardRequest;
 import com.example.myfirstspringboot.dto.request.LoginRequest;
@@ -7,8 +8,8 @@ import com.example.myfirstspringboot.dto.request.RegisterRequest;
 import com.example.myfirstspringboot.dto.response.AuthResponse;
 import com.example.myfirstspringboot.dto.response.BoardDto;
 import com.example.myfirstspringboot.exception.BusinessException;
-import com.example.myfirstspringboot.repository.BoardRepository;
-import com.example.myfirstspringboot.repository.UserRepository;
+import com.example.myfirstspringboot.mapper.BoardMapper;
+import com.example.myfirstspringboot.mapper.UserMapper;
 import com.example.myfirstspringboot.service.AuthService;
 import com.example.myfirstspringboot.service.BoardService;
 import com.example.myfirstspringboot.util.JwtUtil;
@@ -32,9 +33,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    private final UserRepository userRepository;
+    private final UserMapper userMapper;
     private final BoardService boardService;
-    private final BoardRepository boardRepository;
+    private final BoardMapper boardMapper;
     private final JwtUtil jwtUtil;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -101,7 +102,7 @@ public class AuthServiceImpl implements AuthService {
         String password = request.getPassword();
 
         // 检查用户名是否已存在
-        if (userRepository.existsByUsername(username)) {
+        if (userMapper.existsByUsername(username)) {
             throw new BusinessException(409, "用户名已存在");
         }
 
@@ -119,7 +120,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(request.getEmail())
                 .build();
 
-        userRepository.save(newUser);
+        userMapper.insert(newUser);
         log.info("用户注册成功：userId={}, username={}", userId, username);
 
         // 创建默认看板
@@ -177,11 +178,12 @@ public class AuthServiceImpl implements AuthService {
      * 根据用户名查找用户
      */
     private User findUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> {
-                    log.warn("登录失败：用户不存在：username={}", username);
-                    return new BusinessException(401, "用户名或密码错误");
-                });
+        User user = userMapper.selectByUsername(username);
+        if (user == null) {
+            log.warn("登录失败：用户不存在：username={}", username);
+            throw new BusinessException(401, "用户名或密码错误");
+        }
+        return user;
     }
 
     /**
@@ -199,11 +201,10 @@ public class AuthServiceImpl implements AuthService {
      */
     private AuthResponse.BoardInfo ensureUserHasBoard(User user) {
         // 查询用户是否有看板
-        var boardOpt = boardRepository.findFirstByUserIdOrderByCreatedAtAsc(user.getId());
+        Board board = boardMapper.selectFirstByUserIdOrderByCreatedAtAsc(user.getId());
 
-        if (boardOpt.isPresent()) {
+        if (board != null) {
             // 用户已有看板
-            var board = boardOpt.get();
             return buildBoardInfo(board.getId().toString(), board.getName());
         } else {
             // 用户没有看板，自动创建

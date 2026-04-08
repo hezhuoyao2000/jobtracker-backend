@@ -1,6 +1,6 @@
 package com.example.myfirstspringboot.Entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
 
 import java.time.Instant;
@@ -8,47 +8,34 @@ import java.time.Instant;
 /**
  * 用户实体类
  */
-@Entity
-@Table(name = "users")
+@TableName("users")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class User {
 
-    @Id
-    @Column(name = "id", nullable = false, updatable = false)
+    @TableId(type = IdType.INPUT)
     private String id;
 
-    @Column(name = "username", nullable = false, unique = true)
+    @TableField("username")
     private String username;
 
-    @Column(name = "password_hash")
+    @TableField("password_hash")
     private String passwordHash;
 
-    @Column(name = "email", unique = true)
+    @TableField("email")
     private String email;
 
-    @Column(name = "display_name")
+    @TableField("display_name")
     private String displayName;
 
-    @Column(name = "avatar_url")
+    @TableField("avatar_url")
     private String avatarUrl;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Instant updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = Instant.now();
-        updatedAt = Instant.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
-    }
 }

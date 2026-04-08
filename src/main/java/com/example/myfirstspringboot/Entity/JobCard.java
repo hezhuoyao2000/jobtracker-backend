@@ -1,80 +1,69 @@
 package com.example.myfirstspringboot.Entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
 
 import java.time.Instant;
 import java.util.UUID;
 
-@Entity
-@Table(name = "job_card")
+@TableName("job_card")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class JobCard {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @TableId(type = IdType.INPUT)
     private UUID id;
 
-    @Column(name = "board_id", nullable = false)
+    @TableField("board_id")
     private UUID boardId;
 
-    @Column(name = "status_id", nullable = false)
+    @TableField("status_id")
     private UUID statusId;
 
-    @Column(name = "job_title", nullable = false)
+    @TableField("job_title")
     private String jobTitle;
 
-    @Column(name = "company_name", nullable = false)
+    @TableField("company_name")
     private String companyName;
 
-    @Column(name = "job_link")
+    @TableField("job_link")
     private String jobLink;
 
-    @Column(name = "source_platform")
+    @TableField("source_platform")
     private String sourcePlatform;
 
+    @TableField("expired")
     private Boolean expired;
 
-    @Column(name = "job_location")
+    @TableField("job_location")
     private String jobLocation;
 
-    @Column(columnDefinition = "TEXT")
+    @TableField("description")
     private String description;
 
-    @Column(name = "applied_time")
+    @TableField("applied_time")
     private Instant appliedTime;
 
-    @Column(name = "tags", length = 500)
+    @TableField("tags")
     private String tags;
 
-    @Column(columnDefinition = "TEXT")
+    @TableField("comments")
     private String comments;
 
     /**
      * 扩展字段，以 JSON 字符串存储（简化处理）
      * 如需复杂操作可在 Service 层序列化/反序列化
      */
-    @Column(name = "extra", columnDefinition = "TEXT")
+    @TableField("extra")
     private String extra;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Instant updatedAt;
 
-    @Column(name = "deleted_at")
+    @TableField("deleted_at")
+    @TableLogic(value = "NULL", delval = "NOW()")
     private Instant deletedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = Instant.now();
-        updatedAt = Instant.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
-    }
 }

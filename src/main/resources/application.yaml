@@ -2,19 +2,24 @@ spring:
   application:
     name: myfirstspringboot
   datasource:
-    url: jdbc:postgresql://localhost:2015/mysite_dev
-    username: hezhuoyao
-    password: hzythebest1
+    url: jdbc:postgresql://localhost:${DB_PORT:2015}/${DB_NAME:mysite_dev}
+    username: ${DB_USER:hezhuoyao}
+    password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: none  # 使用 schema.sql 初始化表
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        default_schema: public
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  mapper-locations: classpath:/mapper/**/*.xml
+  type-aliases-package: com.example.myfirstspringboot.Entity
+  type-handlers-package: com.example.myfirstspringboot.config
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deletedAt
+      logic-delete-value: "NOW()"
+      logic-not-delete-value: "NULL"
 
 # SpringDoc OpenAPI 配置
 springdoc:
