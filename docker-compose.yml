@@ -4,7 +4,7 @@ services:
     env_file:
       - .env
     image: postgres:16
-    container_name: myfirstspringboot
+    container_name: myfirstspringboot-dev-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:-mysite_dev}
@@ -13,5 +13,5 @@ services:
     ports:
       - "${DB_PORT:-2015}:5432"
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - ./postgres_dev_data:/var/lib/postgresql/data
       - ./init:/docker-entrypoint-initdb.d:ro
