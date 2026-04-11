@@ -1,3 +1,31 @@
+# IoT 模块配置
+iot:
+  modbus:
+    host: localhost
+    port: 502
+    slave-id: 1
+    poll-interval-ms: 1000
+    enabled: false  # 默认关闭，启用时改为true
+
+  mqtt:
+    broker: tcp://localhost:1883
+    client-id: java-gateway-001
+    topic: devices/data
+    qos: 1
+    connection-timeout: 10
+    keep-alive-interval: 60
+
+  influxdb:
+    url: http://localhost:8086
+    token: my-super-secret-token
+    org: iot-demo
+    bucket: device-metrics
+
+  redis:
+    key-prefix: "device:latest:"
+    ttl-seconds: 30
+
+# Spring 配置
 spring:
   application:
     name: myfirstspringboot
@@ -6,6 +34,25 @@ spring:
     username: ${DB_USER:hezhuoyao}
     password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
+
+  # Redis 配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+
+  # Kafka 配置
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: iot-consumer-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
 # MyBatis-Plus 配置
 mybatis-plus:
