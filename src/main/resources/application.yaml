@@ -5,7 +5,7 @@ iot:
     port: 502
     slave-id: 1
     poll-interval-ms: 1000
-    enabled: false  # 默认关闭，启用时改为true
+    enabled: true  # 默认关闭，启用时改为true
 
   mqtt:
     broker: tcp://localhost:1883

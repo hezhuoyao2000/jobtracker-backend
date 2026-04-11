@@ -1,0 +1,63 @@
+# 测试环境配置
+# 使用 Mock 模式，不依赖外部 Modbus 服务
+
+spring:
+  application:
+    name: myfirstspringboot-test
+
+  # 禁用数据源自动配置
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+  # Redis 配置（测试环境）
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+
+  # Kafka 配置（测试环境）
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: iot-test-group
+      auto-offset-reset: earliest
+
+# IoT 模块配置 - 测试环境使用 Mock
+iot:
+  modbus:
+    host: localhost
+    port: 502
+    slave-id: 1
+    poll-interval-ms: 1000
+    enabled: true
+    mock-enabled: true  # 启用 Mock 模式
+
+  mqtt:
+    broker: tcp://localhost:1883
+    client-id: java-gateway-test
+    topic: devices/data
+    qos: 1
+    connection-timeout: 10
+    keep-alive-interval: 60
+
+  influxdb:
+    url: http://localhost:8086
+    token: test-token
+    org: test-org
+    bucket: test-bucket
+
+  redis:
+    key-prefix: "device:test:"
+    ttl-seconds: 30
+
+# 日志配置
+logging:
+  level:
+    com.example.iot: DEBUG
+    root: INFO

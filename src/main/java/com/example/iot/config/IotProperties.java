@@ -25,6 +25,7 @@ public class IotProperties {
         private int slaveId = 1;
         private int pollIntervalMs = 1000;
         private boolean enabled = false;
+        private boolean mockEnabled = false;  // Mock 模式开关
     }
 
     @Data
