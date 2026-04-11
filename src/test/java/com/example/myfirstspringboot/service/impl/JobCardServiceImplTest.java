@@ -337,10 +337,8 @@ class JobCardServiceImplTest {
         verify(jobCardMapper, times(1)).selectByIdAndDeletedAtIsNull(testCardId);
         verify(boardMapper, times(1)).existsByIdAndUserId(testBoardId, testUserId);
 
-        ArgumentCaptor<JobCard> cardCaptor = ArgumentCaptor.forClass(JobCard.class);
-        verify(jobCardMapper, times(1)).updateById(cardCaptor.capture());
-        JobCard savedCard = cardCaptor.getValue();
-        assertNotNull(savedCard.getDeletedAt());
+        // MyBatis-Plus 逻辑删除使用 deleteById，会自动设置 deleted_at = NOW()
+        verify(jobCardMapper, times(1)).deleteById(testCardId);
     }
 
     @Test
@@ -357,6 +355,6 @@ class JobCardServiceImplTest {
         });
 
         assertEquals("卡片 不存在: id = '" + nonExistentCardId + "'", exception.getMessage());
-        verify(jobCardMapper, never()).updateById(any(JobCard.class));
+        verify(jobCardMapper, never()).deleteById(any(UUID.class));
     }
 }
