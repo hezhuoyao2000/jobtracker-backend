@@ -11,18 +11,20 @@ import com.influxdb.client.write.Point;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 
 /**
  * Phase 4 Kafka 消费服务。
  *
  * <p>该组件负责消费 `device-data` topic 中的设备数据，
  * 并将处理后的结果分别写入 InfluxDB 和 Redis：
- * 1. InfluxDB 用于时间序列历史查询
+ * 1. InfluxDB 用于时间序列历史查询（可配置关闭）
  * 2. Redis 用于快速读取设备最新值
  * </p>
  */
@@ -34,7 +36,7 @@ public class DeviceDataConsumer {
     private static final String INFLUX_MEASUREMENT = "device_metrics";
 
     private final IotProperties iotProperties;
-    private final InfluxDBClient influxDBClient;
+    private final Optional<InfluxDBClient> influxDBClient;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
     private final SseEmitterManager sseEmitterManager;
@@ -75,8 +77,13 @@ public class DeviceDataConsumer {
      * `deviceId` 作为 tag，温度和转速作为 field。</p>
      */
     void writeToInfluxDb(DeviceReading reading) {
+        // 如果未启用 InfluxDB，则跳过写入
+        if (!iotProperties.getInfluxdb().isEnabled()) {
+            return;
+        }
+
         try {
-            WriteApiBlocking writeApi = influxDBClient.getWriteApiBlocking();
+            WriteApiBlocking writeApi = influxDBClient.orElseThrow().getWriteApiBlocking();
 
             // 如果上游没有给 timestamp，则兜底使用当前时间，避免写入失败。
             Instant timestamp = reading.getTimestamp() != null ? reading.getTimestamp() : Instant.now();

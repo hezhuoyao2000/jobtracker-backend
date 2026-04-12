@@ -24,6 +24,7 @@ iot:
     topic: device-data
 
   influxdb:
+    enabled: false  # 关闭时序数据库写入
     url: http://localhost:8086
     token: my-super-secret-token
     org: iot-demo
@@ -63,6 +64,9 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        # Kafka Topic 消息保留时间：2小时 = 7200000ms
+        retention.ms: 7200000
 
 # MyBatis-Plus 配置
 mybatis-plus:

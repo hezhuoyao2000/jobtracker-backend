@@ -55,6 +55,7 @@ public class IotProperties {
 
     @Data
     public static class InfluxDbProperties {
+        private boolean enabled = false;  // 默认关闭写入
         private String url = "http://localhost:8086";
         private String token = "my-super-secret-token";
         private String org = "iot-demo";
