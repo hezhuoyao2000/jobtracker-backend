@@ -15,7 +15,7 @@ RUN ./mvnw dependency:go-offline -B
 
 # 复制源码并构建
 COPY src ./src
-RUN ./mvnw clean package -DskipTests -B
+RUN ./mvnw clean package -DskipTests -Dmaven.test.skip=true -B
 
 # Stage 2: Run
 FROM eclipse-temurin:17-jre
