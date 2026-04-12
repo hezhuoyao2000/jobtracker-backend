@@ -1,4 +1,4 @@
-# IoT 工业数据采集链路 — 基础设施搭建需求文档
+﻿# IoT 工业数据采集链路 — 基础设施搭建需求文档
 
 ## 项目背景
 
@@ -295,3 +295,35 @@ com.yourproject.iot/
 - 所有密码、token 均使用明文写死，这是 Demo 项目，不考虑安全
 - Kafka KRaft 模式首次启动需要格式化 metadata，docker-compose 中通过 `command` 处理，需确保幂等（多次 up/down 不报错）
 - EMQX 管理后台地址：`http://localhost:18083`，默认账号 `admin` / `public`
+
+---
+
+## 2026-04-12 补充：浏览器访问入口
+
+### 可直接打开的服务页面
+
+- EMQX 管理后台：`http://localhost:18083`
+  - 账号：`admin`
+  - 密码：`public`
+- InfluxDB Web UI：`http://localhost:8086`
+  - 用于查看 `device_metrics` 中的历史时序数据
+- Grafana：`http://localhost:3000`
+  - 账号：`admin`
+  - 密码：`admin`
+  - 适合做图表查看；前提是你已经在 Grafana 中配置 InfluxDB 数据源
+
+### Redis 查看方式
+
+- 当前基础设施说明里没有 Redis 自带 Web 页面
+- 查看 Redis 最新值建议直接使用：
+
+```bash
+redis-cli GET device:latest:device-001
+redis-cli TTL device:latest:device-001
+```
+
+### Phase 4 手动验收时重点查看的位置
+
+- Kafka topic：`device-data`
+- InfluxDB measurement：`device_metrics`
+- Redis key：`device:latest:device-001`

@@ -1,4 +1,4 @@
-# IoT 模块架构设计与实现文档
+﻿# IoT 模块架构设计与实现文档
 
 > 本文档记录 IoT 模块的整体架构、数据流转、接口契约和实现细节。
 > 每完成一个 Phase 就更新对应章节。
@@ -714,3 +714,58 @@ eventSource.onmessage = (e) => console.log(e.data);
 | 2025-04-11 | v0.3 | Phase 2 测试完成，8个单元测试 + 5个集成测试全部通过 |
 | 2025-04-11 | v0.2 | Phase 2 完成，添加单元测试和集成测试 |
 | 2025-04-11 | v0.1 | 创建文档，完成 Phase 2 设计和实现 |
+
+---
+
+## Phase 4 实施更新（2026-04-12）
+
+### 当前实现状态
+
+- 已新增 `com.example.iot.consumer.DeviceDataConsumer`
+- 消费入口：`@KafkaListener(topics = "${iot.kafka.topic}")`
+- InfluxDB measurement：`device_metrics`
+- InfluxDB tag：`deviceId`
+- InfluxDB field：`temperature`、`rpm`
+- Redis key：`${iot.redis.key-prefix}{deviceId}`
+- Redis TTL：`${iot.redis.ttl-seconds}`，当前默认 `30s`
+
+### 当前测试状态
+
+- 单元测试：`src/test/java/com/example/iot/consumer/DeviceDataConsumerTest.java`
+- 集成测试：`src/test/java/com/example/iot/consumer/DeviceDataConsumerIntegrationTest.java`
+
+### 单元测试覆盖点
+
+- 合法 Kafka JSON 可同时写入 InfluxDB 和 Redis
+- 非法 JSON 不会写入任何下游存储
+- 缺少 `timestamp` 时使用兜底时间继续写 InfluxDB
+- InfluxDB 写入失败时，Redis 仍继续更新
+- Redis 写入失败时，InfluxDB 仍可正常写入
+
+### 集成测试覆盖点
+
+- 真实 Kafka 消息可落到 Redis
+- 真实 Kafka 消息可落到 InfluxDB
+- Redis TTL 生效
+- 非法 Kafka JSON 不会写入 Redis / InfluxDB
+
+### 手动验证入口
+
+- InfluxDB Web UI：`http://localhost:8086`
+- EMQX Dashboard：`http://localhost:18083`
+  - 默认账号：`admin`
+  - 默认密码：`public`
+- Grafana：`http://localhost:3000`
+  - 默认账号：`admin`
+  - 默认密码：`admin`
+
+### 关于“数据库数据去哪里看”
+
+- Phase 4 的历史数据在 **InfluxDB**，浏览器直接打开 `http://localhost:8086`
+- Phase 4 的最新缓存数据在 **Redis**，当前项目没有自带 Redis 可视化页面
+- Redis 建议用命令行查看：
+
+```bash
+redis-cli GET device:latest:device-001
+redis-cli TTL device:latest:device-001
+```

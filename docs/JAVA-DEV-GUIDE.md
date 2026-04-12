@@ -1,4 +1,4 @@
-# Java 端 IoT 模块开发指导文档
+﻿# Java 端 IoT 模块开发指导文档
 
 ## 核心原则：接口解耦，分层开发
 
@@ -587,4 +587,33 @@ curl -N http://localhost:8080/api/iot/stream
 **开发顺序建议**：
 ```
 Phase 1 → Phase 2(Mock模式) → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7(联调)
+```
+
+---
+
+## 2026-04-12 开发更新：Phase 4 已进入实现阶段
+
+### 已新增代码
+
+- `src/main/java/com/example/iot/consumer/DeviceDataConsumer.java`
+- `src/test/java/com/example/iot/consumer/DeviceDataConsumerTest.java`
+- `src/test/java/com/example/iot/consumer/DeviceDataConsumerIntegrationTest.java`
+
+### 测试策略说明
+
+- `DeviceDataConsumerTest` 使用 Mockito mock，不接真实 Kafka / Redis / InfluxDB
+- `DeviceDataConsumerIntegrationTest` 接真实 Kafka、Redis、InfluxDB
+- 集成测试中的消息体仍然是测试构造数据，不是生产设备真实采样值
+
+### 浏览器查看入口
+
+- InfluxDB：`http://localhost:8086`
+- EMQX：`http://localhost:18083`
+- Grafana：`http://localhost:3000`
+
+### Redis 查看命令
+
+```bash
+redis-cli GET device:latest:device-001
+redis-cli TTL device:latest:device-001
 ```
