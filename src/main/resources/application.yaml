@@ -32,6 +32,8 @@ iot:
   redis:
     key-prefix: "device:latest:"
     ttl-seconds: 30
+    # Redis Pub/Sub channel：用于 SSE 推送出口
+    pubsub-channel: "iot:device-data"
 
 # Spring 配置
 spring:

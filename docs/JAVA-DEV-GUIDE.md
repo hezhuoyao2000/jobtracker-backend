@@ -330,12 +330,16 @@ redis-cli GET device:latest:device-001
 
 **可独立测试**：✅ 可用浏览器或 curl 测试
 
+**职责边界（重要）**：
+- Redis `device:latest:*` 作为“最新值缓存”应持续更新（用于后续 Phase 6 查询、以及断线后快速恢复最新值）
+- SSE 只负责“推送出口”：只有前端建立 `/api/iot/stream` 连接时才推送；无连接时不发布 Redis Pub/Sub
+
 **任务清单**：
 - [ ] 创建 `SseEmitterManager.java`
 - [ ] 实现 emitter 管理（ConcurrentHashMap）
 - [ ] 实现 broadcast 方法
 - [ ] 创建 `IotSseController.java` 提供 `/api/iot/stream` 端点
-- [ ] 在 Consumer 中调用 broadcast
+- [ ] 在 Consumer 中发布 Redis Pub/Sub（`iot.redis.pubsub-channel`，默认 `iot:device-data`）
 
 **独立测试方案**：
 ```bash
@@ -350,14 +354,14 @@ curl -N http://localhost:8080/api/iot/stream
 # 4. 浏览器测试
 # 打开控制台执行:
 eventSource = new EventSource('http://localhost:8080/api/iot/stream');
-eventSource.addEventListener('device-reading', (e) => console.log(JSON.parse(e.data)));
+eventSource.addEventListener('device-data', (e) => console.log(JSON.parse(e.data)));
 ```
 
 **前端使用示例**：
 ```javascript
 const eventSource = new EventSource('http://localhost:8080/api/iot/stream');
 
-eventSource.addEventListener('device-reading', (event) => {
+eventSource.addEventListener('device-data', (event) => {
     const data = JSON.parse(event.data);
     console.log('Received:', data);
     // 更新 UI...

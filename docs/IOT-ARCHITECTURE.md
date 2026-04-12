@@ -489,6 +489,8 @@ public class DeviceDataConsumer {
 
 ### 5.3 实现架构
 
+**职责边界**：Redis `device:latest:*` 作为最新值缓存持续更新；SSE 仅作为推送出口，只有存在 SSE 连接时才会发布 Redis Pub/Sub 消息。
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        前端浏览器                                  │
@@ -517,15 +519,25 @@ public class DeviceDataConsumer {
 │                            │ pushToAllEmitters()                │
 └────────────────────────────┼────────────────────────────────────┘
                              │
-┌────────────────────────────┼────────────────────────────────────┐
-│                     Kafka  │ Consumer                           │
-│  ┌─────────────────────────┴───────────────────────────────────┐│
-│  │  DeviceDataConsumer.onMessage() → sseEmitterManager.broadcast(reading) ││
+┌─────────────────────────────────────────────────────────────────┐
+│                 Kafka / Redis 消费链路                           │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │  DeviceDataConsumer.onMessage()                              ││
+│  │  - 写 Redis latest key                                       ││
+│  │  - 若有 SSE 客户端：convertAndSend(pubsub-channel, json)      ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                              │ Redis Pub/Sub                    │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │  RedisDeviceDataSubscriber.onMessage()                       ││
+│  │  → sseEmitterManager.broadcast(json)                         ││
 │  └─────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### 5.4 核心实现类
+
+**Redis 推送出口（Pub/Sub）**：`iot.redis.pubsub-channel`（默认 `iot:device-data`）
 
 **文件**: `com.example.iot.sse.SseEmitterManager`
 
@@ -540,28 +552,27 @@ public class SseEmitterManager {
         emitters.put(clientId, emitter);
         
         // 清理回调
-        emitter.onCompletion(() -> removeEmitter(clientId));
-        emitter.onTimeout(() -> removeEmitter(clientId));
-        emitter.onError(e -> removeEmitter(clientId));
+        emitter.onCompletion(() -> remove(clientId));
+        emitter.onTimeout(() -> remove(clientId));
+        emitter.onError(e -> remove(clientId));
         
         return emitter;
     }
     
-    public void broadcast(DeviceReading reading) {
-        String json = toJson(reading);
+    public void broadcast(String jsonPayload) {
         emitters.forEach((id, emitter) -> {
             try {
                 emitter.send(SseEmitter.event()
-                    .name("device-reading")
-                    .data(json));
+                    .name("device-data")
+                    .data(jsonPayload));
             } catch (IOException e) {
                 log.error("Failed to send SSE to client {}: {}", id, e.getMessage());
-                removeEmitter(id);
+                remove(id);
             }
         });
     }
     
-    private void removeEmitter(String clientId) {
+    private void remove(String clientId) {
         emitters.remove(clientId);
         log.info("SSE emitter removed: {}", clientId);
     }

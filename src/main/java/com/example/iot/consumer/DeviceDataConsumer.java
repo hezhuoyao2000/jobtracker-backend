@@ -2,6 +2,7 @@ package com.example.iot.consumer;
 
 import com.example.iot.config.IotProperties;
 import com.example.iot.model.DeviceReading;
+import com.example.iot.sse.SseEmitterManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.WriteApiBlocking;
@@ -36,6 +37,7 @@ public class DeviceDataConsumer {
     private final InfluxDBClient influxDBClient;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
+    private final SseEmitterManager sseEmitterManager;
 
     /**
      * 消费 Kafka 消息并写入下游存储。
@@ -55,7 +57,8 @@ public class DeviceDataConsumer {
             DeviceReading reading = objectMapper.readValue(payload, DeviceReading.class);
 
             writeToInfluxDb(reading);
-            writeToRedis(reading);
+            String redisJson = writeToRedis(reading);
+            publishToRedisPubSubIfNeeded(redisJson);
 
             log.info("Device data consumed successfully: deviceId={}, topic={}",
                     reading.getDeviceId(), iotProperties.getKafka().getTopic());
@@ -100,7 +103,7 @@ public class DeviceDataConsumer {
      * <p>Redis key 格式：
      * `device:latest:{deviceId}` 或测试环境中的自定义前缀。</p>
      */
-    void writeToRedis(DeviceReading reading) {
+    String writeToRedis(DeviceReading reading) {
         try {
             String key = iotProperties.getRedis().getKeyPrefix() + reading.getDeviceId();
             String value = objectMapper.writeValueAsString(reading);
@@ -111,9 +114,37 @@ public class DeviceDataConsumer {
 
             log.debug("Redis write successful: key={}, ttlSeconds={}",
                     key, iotProperties.getRedis().getTtlSeconds());
+            return value;
         } catch (Exception e) {
             log.error("Failed to write data to Redis: {} - {}, deviceId={}",
                     e.getClass().getSimpleName(), e.getMessage(), reading.getDeviceId());
+            return null;
+        }
+    }
+
+    /**
+     * 将 Redis “latest” 写入后的同一份 JSON 发布到 Redis Pub/Sub channel（用于 SSE 推送出口）。
+     *
+     * <p>按需求约束：如果没有任何 SSE 客户端连接，则不发布，做到“不触发就不发”。</p>
+     *
+     * @param json Redis value（DeviceReading JSON），可能为 null（写入失败或序列化失败）
+     */
+    void publishToRedisPubSubIfNeeded(String json) {
+        if (json == null || json.isBlank()) {
+            return;
+        }
+        if (!sseEmitterManager.hasClients()) {
+            // 没有 SSE 连接时，不刷新“推送出口”（Redis channel）
+            return;
+        }
+
+        try {
+            String channel = iotProperties.getRedis().getPubsubChannel();
+            stringRedisTemplate.convertAndSend(channel, json);
+            log.debug("Redis Pub/Sub publish successful: channel={}", channel);
+        } catch (Exception e) {
+            // 推送出口失败不应影响主链路（Kafka -> DB/Redis）
+            log.warn("Redis Pub/Sub publish failed: {} - {}", e.getClass().getSimpleName(), e.getMessage());
         }
     }
 }

@@ -2,6 +2,7 @@ package com.example.iot.consumer;
 
 import com.example.iot.config.IotProperties;
 import com.example.iot.model.DeviceReading;
+import com.example.iot.sse.SseEmitterManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.WriteApiBlocking;
@@ -48,6 +49,9 @@ class DeviceDataConsumerTest {
     @Mock
     private ValueOperations<String, String> valueOperations;
 
+    @Mock
+    private SseEmitterManager sseEmitterManager;
+
     private ObjectMapper objectMapper;
     private IotProperties iotProperties;
     private DeviceDataConsumer deviceDataConsumer;
@@ -76,12 +80,15 @@ class DeviceDataConsumerTest {
         // 使用 lenient 是为了兼容“非法 JSON”这类不会触发下游调用的测试场景。
         lenient().when(influxDBClient.getWriteApiBlocking()).thenReturn(writeApiBlocking);
         lenient().when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
+        // 默认无 SSE 客户端连接，避免每个单测都必须关心“推送出口”分支
+        lenient().when(sseEmitterManager.hasClients()).thenReturn(false);
 
         deviceDataConsumer = new DeviceDataConsumer(
                 iotProperties,
                 influxDBClient,
                 stringRedisTemplate,
-                objectMapper
+                objectMapper,
+                sseEmitterManager
         );
     }
 
@@ -102,6 +109,8 @@ class DeviceDataConsumerTest {
 
         String payload = objectMapper.writeValueAsString(reading);
 
+        // 模拟存在 SSE 客户端时，会刷新 Redis Pub/Sub 推送出口
+        when(sseEmitterManager.hasClients()).thenReturn(true);
         deviceDataConsumer.onMessage(payload);
 
         // 捕获 InfluxDB 写入参数，确认消费链路已经触达时间序列存储。
@@ -120,6 +129,7 @@ class DeviceDataConsumerTest {
                 eq(payload),
                 eq(Duration.ofSeconds(30))
         );
+        verify(stringRedisTemplate).convertAndSend(eq("iot:device-data"), eq(payload));
     }
 
     /**
