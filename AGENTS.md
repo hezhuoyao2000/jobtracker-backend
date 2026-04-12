@@ -1,188 +1,164 @@
----
-description: IntelliJ IDEA 环境下 Spring Boot 开发规则与最佳实践
-globs: "**/*.java"
-alwaysApply: true
----
+# AGENTS.md
 
-# Spring Boot 开发规则（IntelliJ IDEA 环境）
+This file gives Codex CLI agents the minimum working context for this repository.
 
-## 通用代码风格
-- 类名、接口名、枚举名使用 **PascalCase**（大驼峰），如 `UserService`、`OrderStatus`。
-- 方法名、变量名、参数名使用 **camelCase**（小驼峰），如 `getUserById`、`userName`。
-- 常量使用 **SCREAMING_SNAKE_CASE**，如 `MAX_RETRY_COUNT`。
-- 包名全小写，使用反向域名风格，如 `com.kiwihubprice.user`。
-- 局部变量优先使用 `var`（Java 10+）当类型从右侧明显可见时，如 `var user = userService.findById(id)`。
-- 私有字段不使用下划线前缀，直接使用 `camelCase`。
+## Project Summary
 
-## 异步与并发
-- I/O 操作（数据库、HTTP 调用、消息队列）使用 `@Async` 或 `CompletableFuture`。
-- 避免在异步方法中阻塞等待，禁止 `future.get()` 无超时参数。
-- 使用 `CompletableFuture` 组合异步任务时，始终指定自定义线程池，避免共用 `ForkJoinPool.commonPool()`。
+- Stack: Java 17, Spring Boot 3.5.5, MyBatis-Plus, PostgreSQL, SpringDoc OpenAPI, JWT, Kafka, MQTT, Redis, InfluxDB.
+- Main domain: job-kanban backend with auth, board, column, and card APIs.
+- Secondary domain: IoT ingestion pipeline. Current codebase includes Modbus -> MQTT and MQTT -> Kafka pieces.
+- Build tool: Maven Wrapper (`mvnw.cmd` on Windows).
 
-## 架构与分层
-- **Controller 层**：仅处理 HTTP 请求映射、参数校验、响应封装，禁止包含业务逻辑。
-- **Service 层**：承载业务逻辑，使用接口+实现类模式（`UserService` + `UserServiceImpl`）。
-- **Repository/Mapper 层**：数据访问，优先使用 Spring Data JPA 或 MyBatis-Plus。
-- **Domain 层**：实体、值对象、领域服务，保持与框架无关。
-- 依赖注入使用 **构造器注入**，配合 Lombok `@RequiredArgsConstructor`，禁止字段注入。
-
-## 代码复用与现有组件
-- 新增功能前检查现有基础设施：
-    - 全局异常处理：待定
-    - 统一响应封装：待定
-    - 日志切面：待定
-    - 权限校验：待定
-- 禁止重复造轮子，优先扩展现有组件。
-
-## 异常处理，待定
-- 业务异常继承 `RuntimeException`，使用 `BusinessException` 统一封装。
-- 错误码使用枚举管理，如 `ErrorCode.USER_NOT_FOUND(1001, "用户不存在")`。
-- Controller 层禁止捕获异常，统一交由 `@ControllerAdvice` 处理。
-- 日志记录异常时，使用 `log.error("操作失败, userId={}", userId, e)` 保留堆栈。
-
-## 数据操作
-- 优先使用 Stream API 替代传统 for 循环处理集合。
-- 数据库查询返回实体列表时，使用 `List&lt;&gt;` 而非 `Collection&lt;&gt;` 明确语义。
-- 分页查询统一使用 `Page&lt;T&gt;` 或自定义 `PageResult`。
-- 批量操作考虑使用 JDBC Batch 或 MyBatis 批量插入。
-
-## 开发工具与工作流
-- **HTTP 测试**：使用 IDEA 自带的 `.http` 文件（`src/test/resources/http/` 或 `src/http/`）。
-    - 命名规范：`模块名_功能.http`，如 `user_create.http`。
-    - 使用环境变量管理不同环境地址：`{{host}}`、`{{token}}`。
-- **命令行**：Windows 使用 PowerShell，macOS 使用 Terminal（zsh）。
-- **构建工具**：使用 Maven Wrapper（`./mvnw` 或 `mvnw.cmd`），禁止直接调用系统 mvn。
-
-- **IDE 配置**：统一代码格式化配置，使用 `.editorconfig` 和 IDEA 代码风格导出。
-
-## 配置文件
-- `application.yml` 为主配置，`application-{profile}.yml` 为环境配置。
-- 敏感信息（密码、密钥）使用环境变量或配置中心（Nacos/Apollo），禁止硬编码。
-- 使用 `@ConfigurationProperties` 绑定配置到 POJO，替代 `@Value` 分散注入。
-
-## 测试规范
-- 单元测试使用 JUnit 5 + Mockito，命名 `被测方法名_场景_预期结果`。
-- 集成测试使用 `@SpringBootTest`，配合 `@Testcontainers` 启动真实数据库。
-- HTTP 接口测试优先使用 IDEA HTTP 文件，复杂场景使用 RestAssured。
-
-## 安全与性能
-- 接口响应时间超过 500ms 必须添加缓存或异步优化。
-- 用户输入使用 `jakarta.validation` 注解校验（`@NotBlank`、`@Size` 等）。
-- SQL 注入防护：使用参数化查询，禁止字符串拼接 SQL。
-- 敏感数据脱敏：日志中手机号、身份证号显示为 `138****8888`。
-
-
-
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Build & Run Commands
+## Build And Run
 
 ```bash
-# Build project
+# build
 mvnw.cmd clean package
 
-# Run application
+# run app
 mvnw.cmd spring-boot:run
 
-# Run all tests
+# run app with DB password
+mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-DDB_PASSWORD=your_password"
+
+# run all tests
 mvnw.cmd test
 
-# Run specific test class
+# run one test class
 mvnw.cmd test -Dtest=BoardServiceImplTest
 
-# Run with database password
-mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-DDB_PASSWORD=your_password"
+# run IoT tests
+mvnw.cmd test -Dtest=ModbusGatewayServiceTest,ModbusGatewayIntegrationTest
 ```
 
-## API 文档
+API docs after startup:
 
-启动应用后，可通过以下链接访问 API 文档：
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
 
-- **Swagger UI**: http://localhost:8080/swagger-ui/index.html
-- **API Docs (JSON)**: http://localhost:8080/v3/api-docs
+If the browser auto-open is noisy, set `app.auto-open-browser=false` in `application.yaml`.
 
-应用启动后会自动打开浏览器访问 Swagger UI 文档页面（可通过 `app.auto-open-browser=false` 禁用）。
+## Real Project Structure
 
-## Architecture Overview
+Source layout is not fully conventional. Follow the actual package names in the repo.
 
-### Tech Stack
-- **Java 17** + **Spring Boot 3.5.5**
-- **Spring Data JPA** - 数据访问层（纯 JPA 方案）
-- **PostgreSQL** - 数据库（UUID 主键、jsonb 等字段）
-- **Lombok** - `@Data`, `@RequiredArgsConstructor` 简化代码
-- **SpringDoc OpenAPI** - API 文档（Swagger UI）
+```text
+src/main/java/com/example/myfirstspringboot/
+  Controller/         # controllers; note uppercase C
+  Entity/             # MyBatis-Plus entities; note uppercase E
+  config/
+  dto/request/
+  dto/response/
+  exception/
+  mapper/             # MyBatis mapper interfaces
+  service/
+  service/impl/
+  util/
 
-### Layered Architecture
+src/main/java/com/example/iot/
+  config/
+  gateway/
+  ingestion/
+  model/
 
+src/test/java/com/example/myfirstspringboot/
+src/test/java/com/example/iot/
 ```
-Controller → Service (interface + impl) → Repository/Mapper → Database
-              ↓
-            DTO (request/response)
-```
 
-| Layer | Location | Responsibility |
-|-------|----------|----------------|
-| Entity | `Entity/` | JPA entities mapping database tables |
-| Repository | `repository/` | JPA interfaces for single-table CRUD |
-| Mapper | `mapper/` | MyBatis mapper for complex SQL joins |
-| Service | `service/` + `service/impl/` | Business logic, uses interface+impl pattern |
-| Controller | `controller/` | HTTP request mapping, parameter validation |
-| DTO | `dto/request/`, `dto/response/` | Request/response data transfer objects |
-| Util | `util/` | Utilities like `DtoConverter` |
+Important existing classes:
 
-### Key Design Patterns
+- Auth: `AuthController`, `AuthService`, `AuthServiceImpl`, `JwtUtil`, `JwtAuthenticationFilter`
+- Board flow: `BoardController`, `ColumnController`, `JobCardController`
+- Data layer: `BoardMapper`, `KanbanColumnMapper`, `JobCardMapper`, `UserMapper`
+- DTO conversion: `DtoConverter`
+- Errors: `ApiResponse`, `BusinessException`, `ResourceNotFoundException`, `UnauthorizedException`, `GlobalExceptionHandler`
+- IoT: `ModbusGatewayService`, `MockModbusGatewayService`, `MqttIngestionService`
 
-- **Service Layer**: Interface + Implementation pattern (`BoardService` / `BoardServiceImpl`)
-- **Constructor Injection**: Via Lombok `@RequiredArgsConstructor`, no field injection
-- **Pure JPA**: All data access through Spring Data JPA (Repository pattern)
-- **Soft Delete**: `deleted_at` field on `job_card`, queries filter `deletedAt IS NULL`
-- **UUID Primary Keys**: All entities use `java.util.UUID` generated by `GenerationType.UUID`
-- **Simplified Type Handling**: JSONB/array fields stored as String in Java, serialized as needed
+## Architecture Notes
 
-### Database Schema
+- This codebase currently uses MyBatis-Plus and mapper interfaces, not Spring Data JPA repositories.
+- Entities use MyBatis-Plus annotations such as `@TableName`, `@TableField`, `@TableId`, and `@TableLogic`.
+- Service layer follows interface + implementation.
+- Controllers return the shared `ApiResponse<T>` wrapper.
+- Authentication is request-filter based. `BoardController` reads `userId` from request attributes set by JWT auth flow.
+- `JobCard.deletedAt` uses logical delete via MyBatis-Plus: `@TableLogic(value = "NULL", delval = "NOW()")`.
 
-3 tables: `board` → `kanban_column` → `job_card` (one-to-many relationships)
+## Main HTTP Surface
 
-- **board**: User's kanban boards
-- **kanban_column**: Status columns (Wish list, Applied, Interviewing, Offered, Rejected)
-- **job_card**: Job position cards with soft delete support
+Current controller roots in code:
 
-See `docs/DATABASE_SCHEMA.md` for full SQL and entity definitions.
+- `/auth`
+- `/board`
 
-## Development Guidelines
+Do not assume `/api/...` routes unless you verify them in source first.
 
-### Code Style
-- Naming: `PascalCase` for classes, `camelCase` for methods/variables, `SCREAMING_SNAKE_CASE` for constants
-- Use `var` for local variables when type is obvious
-- Prefer Stream API for collection operations
+Common operations:
 
-### Service Layer
-- Business logic lives here, not simple CRUD pass-through
-- Use `@Transactional` for operations requiring atomicity
-- Read-only queries use `@Transactional(readOnly = true)`
+- `POST /auth/register`
+- `POST /auth/login`
+- `POST /board/load`
+- `POST /board/create`
+- card and column operations are handled from the board-related controllers
 
-### Testing
-- JUnit 5 + Mockito
-- Test class naming: `XxxTest.java` under `src/test/java/`
-- Test method naming: `methodName_scenario_expectedResult`
+## Data And Config
 
-### Configuration
-- Main config: `application.yaml`
-- Database password via JVM argument: `-DDB_PASSWORD=xxx`
-- Sensitive data never hardcoded
+Main configuration file:
 
-## Documentation
+- `src/main/resources/application.yaml`
 
-- `docs/BACKEND_DEVELOPMENT_GUIDE.md` - Development guide with API definitions
-- `docs/DATABASE_SCHEMA.md` - SQL schema and JPA entity code
-- `docs/TASK_PROGRESS.md` - Current development progress
+Current defaults worth knowing:
 
-## Existing Rules
+- PostgreSQL: `jdbc:postgresql://localhost:${DB_PORT:2015}/${DB_NAME:mysite_dev}`
+- DB user default: `${DB_USER:hezhuoyao}`
+- DB password comes from `${DB_PASSWORD:}`
+- Redis: `localhost:6379`
+- Kafka: `localhost:9092`
+- MQTT broker: `tcp://localhost:1883`
+- InfluxDB: `http://localhost:8086`
 
-See `.aiassistant/rules/springrules.md` for detailed Spring Boot coding standards including:
-- Async/concurrency patterns
-- Exception handling via `@ControllerAdvice`
-- Input validation with `jakarta.validation`
-- HTTP test files using `.http` format
+OpenAPI and browser behavior are configured under:
+
+- `springdoc.*`
+- `app.auto-open-browser`
+- `app.swagger-path`
+
+## Testing
+
+Existing test coverage includes:
+
+- `BoardServiceImplTest`
+- `ColumnServiceImplTest`
+- `JobCardServiceImplTest`
+- `ModbusGatewayServiceTest`
+- `ModbusGatewayIntegrationTest`
+- `IotTestApplication`
+
+Prefer targeted test runs when touching one service.
+
+## Working Rules For Agents
+
+- Preserve existing package casing such as `Controller` and `Entity`; do not silently rename packages as part of unrelated work.
+- Keep using constructor injection via Lombok `@RequiredArgsConstructor`.
+- Reuse `ApiResponse` and existing exception types instead of inventing new response envelopes.
+- When adding persistence logic, match current MyBatis-Plus style instead of mixing in a new repository pattern.
+- When changing board/card behavior, keep default board columns consistent:
+  `Wish list`, `Applied`, `Interviewing`, `Offered`, `Rejected`.
+- When editing auth flow, verify both controller endpoints and JWT filter behavior.
+- When editing IoT code, keep topic names aligned with config:
+  MQTT topic `devices/data`, Kafka topic `device-data`.
+
+## Known Pitfalls
+
+- Several repo documents contain encoding damage. Treat source code and `application.yaml` as the source of truth.
+- Older docs may mention JPA repositories; the actual implementation in this repo is mapper-based.
+- Some examples in docs use `/api/...` paths, but the controllers in source use `/auth` and `/board`.
+- The project contains both core app code and IoT code; avoid changing shared config casually.
+
+## Useful References
+
+- `CLAUDE.md`
+- `docs/BACKEND_DEVELOPMENT_GUIDE.md`
+- `docs/DATABASE_SCHEMA.md`
+- `docs/IOT-ARCHITECTURE.md`
+- `docs/JAVA-DEV-GUIDE.md`
+- `.aiassistant/rules/springrules.md`

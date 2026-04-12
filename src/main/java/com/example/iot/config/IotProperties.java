@@ -15,6 +15,7 @@ public class IotProperties {
 
     private ModbusProperties modbus;
     private MqttProperties mqtt;
+    private KafkaProperties kafka;
     private InfluxDbProperties influxdb;
     private RedisProperties redis;
 
@@ -36,6 +37,20 @@ public class IotProperties {
         private int qos = 1;
         private int connectionTimeout = 10;
         private int keepAliveInterval = 60;
+        private ConsumerProperties consumer = new ConsumerProperties();
+
+        @Data
+        public static class ConsumerProperties {
+            private boolean enabled = true;
+            private String clientId = "java-ingestion-001";
+            private String topic = "devices/data";
+            private int qos = 1;
+        }
+    }
+
+    @Data
+    public static class KafkaProperties {
+        private String topic = "device-data";
     }
 
     @Data

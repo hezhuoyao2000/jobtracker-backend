@@ -14,6 +14,14 @@ iot:
     qos: 1
     connection-timeout: 10
     keep-alive-interval: 60
+    consumer:
+      enabled: true
+      client-id: java-ingestion-001
+      topic: devices/data
+      qos: 1
+
+  kafka:
+    topic: device-data
 
   influxdb:
     url: http://localhost:8086
