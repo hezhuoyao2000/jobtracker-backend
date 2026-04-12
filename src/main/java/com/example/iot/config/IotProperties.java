@@ -51,6 +51,13 @@ public class IotProperties {
     @Data
     public static class KafkaProperties {
         private String topic = "device-data";
+        /**
+         * Topic 消息保留时长，单位毫秒。
+         *
+         * <p>该配置用于 Spring Kafka Admin 创建 Topic 时写入 broker 侧的 topic config，
+         * 而不是客户端 consumer/producer 的本地属性。</p>
+         */
+        private long retentionMs = 7200000L;
     }
 
     @Data

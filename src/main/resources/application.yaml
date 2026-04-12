@@ -5,7 +5,7 @@ iot:
     port: 502
     slave-id: 1
     poll-interval-ms: 1000
-    enabled: true  # 默认关闭，启用时改为true
+    enabled: true  # 默认关闭，启用时改为 true
 
   mqtt:
     broker: tcp://localhost:1883
@@ -22,6 +22,8 @@ iot:
 
   kafka:
     topic: device-data
+    # Kafka Topic 消息保留时间：2 小时 = 7200000ms
+    retention-ms: 7200000
 
   influxdb:
     enabled: false  # 关闭时序数据库写入
@@ -64,9 +66,6 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      properties:
-        # Kafka Topic 消息保留时间：2小时 = 7200000ms
-        retention.ms: 7200000
 
 # MyBatis-Plus 配置
 mybatis-plus:
@@ -96,18 +95,15 @@ management:
   endpoints:
     web:
       exposure:
-        include: "health,info"  # 只暴露健康和信息端点以节约性能 [6]
-        # if: "*"              # 或者暴露所有 (开发环境慎用，生产环境不推荐)
+        include: "health,info"  # 只暴露健康和信息端点以节约性能
+        # include: "*"          # 开发环境可临时放开，生产环境不建议
   endpoint:
     health:
       probes:
-        enabled: true         # 开启主动探针支持 [7]
-      show-details: always    # 输出详细信息方便调试（生产可改为 never）
+        enabled: true
+      show-details: always
 
 # 应用配置
 app:
-  # 启动时自动打开浏览器（true=启用，false=禁用）
   auto-open-browser: true
-  # Swagger UI 路径
   swagger-path: /swagger-ui/index.html
-

@@ -18,6 +18,7 @@ import org.springframework.data.redis.core.ValueOperations;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,6 +70,8 @@ class DeviceDataConsumerTest {
         iotProperties.setKafka(kafkaProperties);
 
         IotProperties.InfluxDbProperties influxDbProperties = new IotProperties.InfluxDbProperties();
+        // 当前实现会先检查 enabled，再决定是否触发 InfluxDB 写入，因此单测需要显式开启。
+        influxDbProperties.setEnabled(true);
         influxDbProperties.setBucket("test-bucket");
         iotProperties.setInfluxdb(influxDbProperties);
 
@@ -85,7 +88,7 @@ class DeviceDataConsumerTest {
 
         deviceDataConsumer = new DeviceDataConsumer(
                 iotProperties,
-                influxDBClient,
+                Optional.of(influxDBClient),
                 stringRedisTemplate,
                 objectMapper,
                 sseEmitterManager
