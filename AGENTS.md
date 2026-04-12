@@ -1,56 +1,52 @@
 # AGENTS.md
 
-This file gives Codex CLI agents the minimum working context for this repository.
+本文件为 Codex CLI / Code Agent 在本仓库中工作的统一说明。
 
-## Project Summary
+## 项目概览
 
-- Stack: Java 17, Spring Boot 3.5.5, MyBatis-Plus, PostgreSQL, SpringDoc OpenAPI, JWT, Kafka, MQTT, Redis, InfluxDB.
-- Main domain: job-kanban backend with auth, board, column, and card APIs.
-- Secondary domain: IoT ingestion pipeline. Current codebase includes Modbus -> MQTT and MQTT -> Kafka pieces.
-- Build tool: Maven Wrapper (`mvnw.cmd` on Windows).
+- 技术栈：Java 17、Spring Boot 3.5.5、MyBatis-Plus、PostgreSQL、SpringDoc OpenAPI、JWT、Kafka、MQTT、Redis、InfluxDB。
+- 主业务：求职看板后端，包含认证、看板、列、卡片接口。
+- IoT 子模块：当前已实现 Modbus -> MQTT 与 MQTT -> Kafka。
+- 构建工具：Maven Wrapper，Windows 下使用 `.\mvnw.cmd`。
 
-## Build And Run
+## 构建与运行
 
 ```bash
-# build
-mvnw.cmd clean package
+# 构建
+.\mvnw.cmd clean package
 
-# run app
-mvnw.cmd spring-boot:run
+# 启动应用
+.\mvnw.cmd spring-boot:run
 
-# run app with DB password
-mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-DDB_PASSWORD=your_password"
+# 带数据库密码启动
+.\mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-DDB_PASSWORD=your_password"
 
-# run all tests
-mvnw.cmd test
+# 运行全部测试
+.\mvnw.cmd test
 
-# run one test class
-mvnw.cmd test -Dtest=BoardServiceImplTest
+# 运行单个测试类
+.\mvnw.cmd test -Dtest=BoardServiceImplTest
 
-# run IoT tests
-mvnw.cmd test -Dtest=ModbusGatewayServiceTest,ModbusGatewayIntegrationTest
+# 运行 IoT 测试
+.\mvnw.cmd test -Dtest=ModbusGatewayServiceTest,ModbusGatewayIntegrationTest
 ```
 
-API docs after startup:
+启动后文档地址：
 
-- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
-- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+- Swagger UI：`http://localhost:8080/swagger-ui/index.html`
+- OpenAPI JSON：`http://localhost:8080/v3/api-docs`
 
-If the browser auto-open is noisy, set `app.auto-open-browser=false` in `application.yaml`.
-
-## Real Project Structure
-
-Source layout is not fully conventional. Follow the actual package names in the repo.
+## 目录与结构
 
 ```text
 src/main/java/com/example/myfirstspringboot/
-  Controller/         # controllers; note uppercase C
-  Entity/             # MyBatis-Plus entities; note uppercase E
+  Controller/         # 注意是大写 C
+  Entity/             # 注意是大写 E
   config/
   dto/request/
   dto/response/
   exception/
-  mapper/             # MyBatis mapper interfaces
+  mapper/
   service/
   service/impl/
   util/
@@ -65,96 +61,47 @@ src/test/java/com/example/myfirstspringboot/
 src/test/java/com/example/iot/
 ```
 
-Important existing classes:
+## 关键约定
 
-- Auth: `AuthController`, `AuthService`, `AuthServiceImpl`, `JwtUtil`, `JwtAuthenticationFilter`
-- Board flow: `BoardController`, `ColumnController`, `JobCardController`
-- Data layer: `BoardMapper`, `KanbanColumnMapper`, `JobCardMapper`, `UserMapper`
-- DTO conversion: `DtoConverter`
-- Errors: `ApiResponse`, `BusinessException`, `ResourceNotFoundException`, `UnauthorizedException`, `GlobalExceptionHandler`
-- IoT: `ModbusGatewayService`, `MockModbusGatewayService`, `MqttIngestionService`
+- 当前仓库真实持久层方案是 `MyBatis-Plus + Mapper`，不是 JPA Repository。
+- 控制器统一返回 `ApiResponse<T>`。
+- 认证链路依赖 JWT 过滤器，部分控制器从 request attribute 中读取 `userId`。
+- `JobCard.deletedAt` 使用 MyBatis-Plus 逻辑删除。
+- 默认看板列必须保持一致：
+  `Wish list`、`Applied`、`Interviewing`、`Offered`、`Rejected`。
+- IoT topic 保持与配置一致：
+  MQTT `devices/data`，Kafka `device-data`。
 
-## Architecture Notes
+## 编码规则
 
-- This codebase currently uses MyBatis-Plus and mapper interfaces, not Spring Data JPA repositories.
-- Entities use MyBatis-Plus annotations such as `@TableName`, `@TableField`, `@TableId`, and `@TableLogic`.
-- Service layer follows interface + implementation.
-- Controllers return the shared `ApiResponse<T>` wrapper.
-- Authentication is request-filter based. `BoardController` reads `userId` from request attributes set by JWT auth flow.
-- `JobCard.deletedAt` uses logical delete via MyBatis-Plus: `@TableLogic(value = "NULL", delval = "NOW()")`.
+- 不要擅自重命名现有非常规目录或包名，例如 `Controller/`、`Entity/`。
+- 继续使用构造器注入，优先 `@RequiredArgsConstructor`。
+- 新增持久层逻辑时，优先匹配现有 Mapper 风格，不要混入新的 Repository 模式。
+- 修改接口时先以源码为准，不要直接相信旧文档中的 `/api/...` 示例。
 
-## Main HTTP Surface
+## 注释规则
 
-Current controller roots in code:
+- 新增或重写文件时，必须补充“必要的注释”，不能只写裸代码。
+- 类需要有简短块级注释，说明职责和所在阶段或用途。
+- 公开方法、测试方法、关键辅助方法需要有函数块级注释，说明输入、行为和验证目标。
+- 复杂判断、异步处理、测试同步等待、关键 mock/stub、关键资源初始化，需要补充必要的行内注释。
+- 注释要解释“为什么这样做”或“这一段在保证什么”，不要写无信息量废话。
+- 注释默认使用中文，除非文件本身已经明确采用英文风格。
 
-- `/auth`
-- `/board`
+## 测试规则
 
-Do not assume `/api/...` routes unless you verify them in source first.
+- 修改一个 Service，优先补对应单元测试。
+- 涉及外部集成链路时，补对应集成测试。
+- 单元测试优先 Mockito；集成测试优先真实链路或最接近真实运行方式的验证。
+- 如果测试依赖外部基础设施，要在最终说明里明确写出依赖项和执行方式。
 
-Common operations:
+## 已知问题
 
-- `POST /auth/register`
-- `POST /auth/login`
-- `POST /board/load`
-- `POST /board/create`
-- card and column operations are handled from the board-related controllers
+- 仓库内部分旧文档存在编码损坏，源码和 `application.yaml` 才是事实来源。
+- 旧文档有些地方仍写成 JPA Repository，但当前实现不是。
+- 旧文档有些接口路径示例与当前控制器实现不一致。
 
-## Data And Config
-
-Main configuration file:
-
-- `src/main/resources/application.yaml`
-
-Current defaults worth knowing:
-
-- PostgreSQL: `jdbc:postgresql://localhost:${DB_PORT:2015}/${DB_NAME:mysite_dev}`
-- DB user default: `${DB_USER:hezhuoyao}`
-- DB password comes from `${DB_PASSWORD:}`
-- Redis: `localhost:6379`
-- Kafka: `localhost:9092`
-- MQTT broker: `tcp://localhost:1883`
-- InfluxDB: `http://localhost:8086`
-
-OpenAPI and browser behavior are configured under:
-
-- `springdoc.*`
-- `app.auto-open-browser`
-- `app.swagger-path`
-
-## Testing
-
-Existing test coverage includes:
-
-- `BoardServiceImplTest`
-- `ColumnServiceImplTest`
-- `JobCardServiceImplTest`
-- `ModbusGatewayServiceTest`
-- `ModbusGatewayIntegrationTest`
-- `IotTestApplication`
-
-Prefer targeted test runs when touching one service.
-
-## Working Rules For Agents
-
-- Preserve existing package casing such as `Controller` and `Entity`; do not silently rename packages as part of unrelated work.
-- Keep using constructor injection via Lombok `@RequiredArgsConstructor`.
-- Reuse `ApiResponse` and existing exception types instead of inventing new response envelopes.
-- When adding persistence logic, match current MyBatis-Plus style instead of mixing in a new repository pattern.
-- When changing board/card behavior, keep default board columns consistent:
-  `Wish list`, `Applied`, `Interviewing`, `Offered`, `Rejected`.
-- When editing auth flow, verify both controller endpoints and JWT filter behavior.
-- When editing IoT code, keep topic names aligned with config:
-  MQTT topic `devices/data`, Kafka topic `device-data`.
-
-## Known Pitfalls
-
-- Several repo documents contain encoding damage. Treat source code and `application.yaml` as the source of truth.
-- Older docs may mention JPA repositories; the actual implementation in this repo is mapper-based.
-- Some examples in docs use `/api/...` paths, but the controllers in source use `/auth` and `/board`.
-- The project contains both core app code and IoT code; avoid changing shared config casually.
-
-## Useful References
+## 参考文档
 
 - `CLAUDE.md`
 - `docs/BACKEND_DEVELOPMENT_GUIDE.md`
