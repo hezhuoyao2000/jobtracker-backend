@@ -37,8 +37,8 @@ public class MqttConfig {
         options.setAutomaticReconnect(true);
         options.setCleanSession(true);
 
-        client.connect(options);
-        log.info("MQTT client connected successfully");
+        // 不在 Bean 初始化阶段强依赖外部 Broker，避免部署时因短暂网络不可达导致应用整体启动失败。
+        log.info("MQTT client initialized without eager connect; connection will be established on demand");
 
         return client;
     }

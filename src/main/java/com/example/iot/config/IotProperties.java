@@ -45,6 +45,7 @@ public class IotProperties {
             private String clientId = "java-ingestion-001";
             private String topic = "devices/data";
             private int qos = 1;
+            private int reconnectIntervalMs = 5000;
         }
     }
 

@@ -2,12 +2,13 @@ package com.example.iot.gateway;
 
 import com.example.iot.config.IotProperties;
 import com.example.iot.model.DeviceReading;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ghgande.j2mod.modbus.facade.ModbusTCPMaster;
 import com.ghgande.j2mod.modbus.procimg.Register;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -19,8 +20,10 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Modbus 网关服务
- * 从 Modbus TCP 读取设备数据，发布到 MQTT
+ * Modbus 采集网关。
+ *
+ * <p>负责按调度周期读取 Modbus TCP 寄存器，并将采集结果发布到 MQTT。
+ * MQTT 改为发布前按需连接，避免部署时 Broker 暂不可达拖垮整个应用。</p>
  */
 @Slf4j
 @Service
@@ -28,16 +31,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ConditionalOnProperty(prefix = "iot.modbus", name = "mock-enabled", havingValue = "false", matchIfMissing = true)
 public class ModbusGatewayService {
 
+    private static final int MAX_RETRY = 3;
+
     private final IotProperties iotProperties;
     private final MqttClient mqttClient;
     private final ObjectMapper objectMapper;
 
     private ModbusTCPMaster modbusMaster;
     private final AtomicInteger retryCount = new AtomicInteger(0);
-    private static final int MAX_RETRY = 3;
 
     /**
-     * 应用启动后初始化 Modbus 连接
+     * 应用就绪后按配置决定是否立即建立 Modbus 连接。
      */
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
@@ -49,7 +53,7 @@ public class ModbusGatewayService {
     }
 
     /**
-     * 建立 Modbus TCP 连接
+     * 建立 Modbus TCP 连接。
      */
     private void connectModbus() {
         var config = iotProperties.getModbus();
@@ -69,8 +73,7 @@ public class ModbusGatewayService {
     }
 
     /**
-     * 定时轮询读取 Modbus 数据
-     * 间隔通过 iot.modbus.poll-interval-ms 配置（默认 1000ms）
+     * 按配置周期轮询设备数据；连接断开时尝试在后续调度周期补连。
      */
     @Scheduled(fixedDelayString = "${iot.modbus.poll-interval-ms:1000}")
     public void pollDeviceData() {
@@ -78,7 +81,6 @@ public class ModbusGatewayService {
             return;
         }
 
-        // 检查连接，如果断开则尝试重连
         if (modbusMaster == null || !modbusMaster.isConnected()) {
             int retry = retryCount.incrementAndGet();
             if (retry <= MAX_RETRY) {
@@ -86,7 +88,6 @@ public class ModbusGatewayService {
                 connectModbus();
             } else {
                 log.error("Modbus reconnect failed after {} attempts, giving up", MAX_RETRY);
-                // 重置计数器，下次调度会再次尝试
                 retryCount.set(0);
             }
             return;
@@ -96,25 +97,21 @@ public class ModbusGatewayService {
             DeviceReading reading = readModbusData();
             if (reading != null) {
                 publishToMqtt(reading);
-                // 成功读取后重置重试计数
                 retryCount.set(0);
             }
         } catch (Exception e) {
             log.error("Error polling Modbus data: {} - {}", e.getClass().getSimpleName(), e.getMessage());
-            // 连接可能已断开，下次调度会触发重连
             modbusMaster = null;
         }
     }
 
     /**
-     * 从 Modbus 读取数据
-     * 读取寄存器 0 和 1（温度、转速）
+     * 读取两个 Holding Registers，并按既定格式转换为领域对象。
      */
     private DeviceReading readModbusData() throws Exception {
         var config = iotProperties.getModbus();
         int slaveId = config.getSlaveId();
 
-        // 读取 2 个 Holding Registers，从地址 0 开始
         Register[] registers = modbusMaster.readMultipleRegisters(slaveId, 0, 2);
 
         if (registers == null || registers.length < 2) {
@@ -123,13 +120,11 @@ public class ModbusGatewayService {
             return null;
         }
 
-        // 解析数据
-        int rawTemperature = registers[0].getValue();  // 地址 0: 温度原始值
-        int rawRpm = registers[1].getValue();          // 地址 1: 转速原始值
+        int rawTemperature = registers[0].getValue();
+        int rawRpm = registers[1].getValue();
 
-        // 单位换算
-        double temperature = rawTemperature / 10.0;    // 原始值 / 10 = °C
-        int rpm = rawRpm;                              // 直接为 RPM
+        double temperature = rawTemperature / 10.0;
+        int rpm = rawRpm;
 
         return DeviceReading.builder()
                 .deviceId("device-001")
@@ -142,10 +137,15 @@ public class ModbusGatewayService {
     }
 
     /**
-     * 将数据发布到 MQTT
+     * 发布采集结果到 MQTT；若 Broker 尚未就绪，则仅记录告警并等待下一轮采集继续尝试。
      */
     private void publishToMqtt(DeviceReading reading) {
         try {
+            if (!ensureMqttConnected()) {
+                log.warn("Skip MQTT publish because broker is still unavailable");
+                return;
+            }
+
             String topic = iotProperties.getMqtt().getTopic();
             String payload = objectMapper.writeValueAsString(reading);
 
@@ -159,24 +159,56 @@ public class ModbusGatewayService {
         }
     }
 
-    // ============ 测试辅助方法 ============
+    /**
+     * 在真正发布前再尝试建立 MQTT 连接，避免 Broker 短暂不可达时阻塞应用启动。
+     */
+    private boolean ensureMqttConnected() {
+        if (mqttClient.isConnected()) {
+            return true;
+        }
+
+        try {
+            mqttClient.connect(buildConnectOptions());
+            log.info("MQTT publisher connected successfully");
+            return true;
+        } catch (Exception e) {
+            log.warn("Failed to connect MQTT publisher: {} - {}",
+                    e.getClass().getSimpleName(), e.getMessage());
+            return false;
+        }
+    }
 
     /**
-     * 设置 ModbusTCPMaster（用于测试）
+     * 统一使用配置中的连接参数，避免运行期补连和初始配置出现偏差。
+     */
+    private MqttConnectOptions buildConnectOptions() {
+        var config = iotProperties.getMqtt();
+        MqttConnectOptions options = new MqttConnectOptions();
+        options.setConnectionTimeout(config.getConnectionTimeout());
+        options.setKeepAliveInterval(config.getKeepAliveInterval());
+        options.setAutomaticReconnect(true);
+        options.setCleanSession(true);
+        return options;
+    }
+
+    // ============ 测试辅助 ============
+
+    /**
+     * 注入测试专用 ModbusTCPMaster，用于隔离真实网络依赖。
      */
     void setModbusMaster(ModbusTCPMaster modbusMaster) {
         this.modbusMaster = modbusMaster;
     }
 
     /**
-     * 获取当前重试计数（用于测试）
+     * 返回当前重连次数，便于验证失败后的调度行为。
      */
     int getRetryCount() {
         return retryCount.get();
     }
 
     /**
-     * 重置重试计数（用于测试）
+     * 重置重连计数，避免测试之间互相污染。
      */
     void resetRetryCount() {
         retryCount.set(0);

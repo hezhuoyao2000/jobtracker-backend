@@ -58,8 +58,13 @@ public class DeviceDataConsumer {
             // 先统一解析成领域对象，后续两个存储都复用这份结构化数据。
             DeviceReading reading = objectMapper.readValue(payload, DeviceReading.class);
 
+            // 写入 inluxdb
             writeToInfluxDb(reading);
+
+            // 写入 redis
             String redisJson = writeToRedis(reading);
+
+            // 4. 推送给 SSE 前端
             publishToRedisPubSubIfNeeded(redisJson);
 
             log.info("Device data consumed successfully: deviceId={}, topic={}",

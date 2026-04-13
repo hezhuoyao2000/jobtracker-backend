@@ -26,6 +26,23 @@ spring:
     restart:
       enabled: false
 
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:iot-redis}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      database: ${SPRING_DATA_REDIS_DATABASE:0}
+
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:iot-kafka:19092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:iot-consumer-group}
+      auto-offset-reset: ${SPRING_KAFKA_AUTO_OFFSET_RESET:earliest}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
 server:
   port: 8080
   compression:
@@ -51,6 +68,43 @@ jwt:
   expiration: 86400000  # 24小时
 
 # Actuator 健康检查（用于 Docker 健康检查）
+iot:
+  modbus:
+    host: ${IOT_MODBUS_HOST:plc-simulator}
+    port: ${IOT_MODBUS_PORT:502}
+    slave-id: ${IOT_MODBUS_SLAVE_ID:1}
+    poll-interval-ms: ${IOT_MODBUS_POLL_INTERVAL_MS:1000}
+    enabled: ${IOT_MODBUS_ENABLED:true}
+    mock-enabled: ${IOT_MODBUS_MOCK_ENABLED:false}
+  mqtt:
+    broker: ${IOT_MQTT_BROKER:tcp://iot-emqx:1883}
+    client-id: ${IOT_MQTT_CLIENT_ID:java-gateway-001}
+    topic: ${IOT_MQTT_TOPIC:devices/data}
+    qos: ${IOT_MQTT_QOS:1}
+    connection-timeout: ${IOT_MQTT_CONNECTION_TIMEOUT:10}
+    keep-alive-interval: ${IOT_MQTT_KEEP_ALIVE_INTERVAL:60}
+    consumer:
+      enabled: ${IOT_MQTT_CONSUMER_ENABLED:true}
+      client-id: ${IOT_MQTT_CONSUMER_CLIENT_ID:java-ingestion-001}
+      topic: ${IOT_MQTT_CONSUMER_TOPIC:devices/data}
+      qos: ${IOT_MQTT_CONSUMER_QOS:1}
+      reconnect-interval-ms: ${IOT_MQTT_CONSUMER_RECONNECT_INTERVAL_MS:5000}
+  kafka:
+    topic: ${IOT_KAFKA_TOPIC:device-data}
+    retention-ms: ${IOT_KAFKA_RETENTION_MS:7200000}
+  influxdb:
+    enabled: ${IOT_INFLUXDB_ENABLED:false}
+    url: ${IOT_INFLUXDB_URL:http://iot-influxdb:8086}
+    token: ${IOT_INFLUXDB_TOKEN:my-super-secret-token}
+    org: ${IOT_INFLUXDB_ORG:iot-demo}
+    bucket: ${IOT_INFLUXDB_BUCKET:device-metrics}
+  redis:
+    key-prefix: ${IOT_REDIS_KEY_PREFIX:device:latest:}
+    ttl-seconds: ${IOT_REDIS_TTL_SECONDS:30}
+    pubsub-channel: ${IOT_REDIS_PUBSUB_CHANNEL:iot:device-data}
+  sse:
+    heartbeat-interval-ms: ${IOT_SSE_HEARTBEAT_INTERVAL_MS:15000}
+
 management:
   endpoints:
     web:

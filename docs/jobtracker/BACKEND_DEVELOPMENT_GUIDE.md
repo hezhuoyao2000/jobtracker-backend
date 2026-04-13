@@ -132,7 +132,7 @@ myfirstspringboot/
 
 ## 四、数据库设计
 
-完整的建表 SQL 和 Entity 设计代码已移至 [`DATABASE_SCHEMA.md`](./DATABASE_SCHEMA.md)，本文档仅保留字段功能说明。
+完整的建表 SQL 和 Entity 设计代码已移至 [`DATABASE_SCHEMA.md`](DATABASE_SCHEMA.md)，本文档仅保留字段功能说明。
 
 ### 4.1 表结构概览
 
@@ -170,13 +170,13 @@ kanban_column (1) ──→ (N) job_card (status_id)
 - `job_card.board_id` → `board.id` (ON DELETE CASCADE)
 - `job_card.status_id` → `kanban_column.id`
 
-> 详细 SQL 建表语句请查看 [`DATABASE_SCHEMA.md`](./DATABASE_SCHEMA.md)
+> 详细 SQL 建表语句请查看 [`DATABASE_SCHEMA.md`](DATABASE_SCHEMA.md)
 
 ---
 
 ## 五、Entity 设计与 Repository 层
 
-完整的 Entity 设计和 Repository 接口定义请查看 [`DATABASE_SCHEMA.md`](./DATABASE_SCHEMA.md)。
+完整的 Entity 设计和 Repository 接口定义请查看 [`DATABASE_SCHEMA.md`](DATABASE_SCHEMA.md)。
 
 ### 5.1 技术说明
 

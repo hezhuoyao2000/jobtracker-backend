@@ -49,8 +49,8 @@ public class MqttConsumerConfig {
         options.setAutomaticReconnect(true);
         options.setCleanSession(true);
 
-        client.connect(options);
-        log.info("MQTT Consumer client connected successfully");
+        // 不在 Spring 启动阶段强连 Broker，Consumer 由运行期自恢复任务负责连接和订阅。
+        log.info("MQTT Consumer client initialized without eager connect; subscription will be established on demand");
 
         return client;
     }

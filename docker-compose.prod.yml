@@ -46,6 +46,12 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       # Spring Profile
       SPRING_PROFILES_ACTIVE: prod
+      IOT_MODBUS_HOST: ${IOT_MODBUS_HOST:-plc-simulator}
+      IOT_MQTT_BROKER: ${IOT_MQTT_BROKER:-tcp://iot-emqx:1883}
+      IOT_INFLUXDB_URL: ${IOT_INFLUXDB_URL:-http://iot-influxdb:8086}
+      SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST:-iot-redis}
+      SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT:-6379}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:-iot-kafka:19092}
       # JVM 优化（可覆盖 Dockerfile 中的默认值）
       JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx512m -XX:+UseG1GC}
     ports:
@@ -58,10 +64,14 @@ services:
       start_period: 60s
     networks:
       - app-network
+      - iot-network
 
 networks:
   app-network:
     driver: bridge
+  iot-network:
+    external: true
+    name: iot-net
 
 volumes:
   postgres_data:

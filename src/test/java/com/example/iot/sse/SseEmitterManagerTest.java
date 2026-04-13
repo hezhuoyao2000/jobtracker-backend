@@ -10,42 +10,38 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * SseEmitterManager 的单元测试。
  *
- * <p>这里不启动 Web 容器，只验证：
- * - emitter 生命周期是否能正确注册与清理
- * - 广播失败（IO 异常）时是否能移除对应 emitter
+ * <p>覆盖连接注册、异常清理与心跳保活，确保线上 SSE 长连接在无业务数据时仍能被维护。</p>
  */
 class SseEmitterManagerTest {
 
     /**
-     * 验证 createEmitter 会注册连接，并在 completion 时自动清理，避免内存泄漏。
+     * 验证 createEmitter 会注册 emitter，且 remove 可正确释放连接。
      */
     @Test
-    @DisplayName("createEmitter 应注册 emitter，remove 应清理")
+    @DisplayName("createEmitter 应注册 emitter，remove 应释放连接")
     void testCreateEmitterShouldRegisterAndRemove() {
         SseEmitterManager manager = new SseEmitterManager();
 
         SseEmitter emitter = manager.createEmitter("client-1");
+        assertThat(emitter).isNotNull();
         assertThat(manager.hasClients()).isTrue();
 
-        // 说明：SseEmitter.onCompletion 通常由 Spring MVC 请求生命周期触发；
-        // 在纯单元测试里不容易可靠模拟该时机，因此这里直接验证 remove 行为即可。
         manager.remove("client-1");
         assertThat(manager.hasClients()).isFalse();
     }
 
     /**
-     * 验证 broadcast 时，如果某个 emitter 发送失败，会被移除，避免持续失败占用资源。
+     * 验证业务广播失败时会清理失效 emitter，避免坏连接长期滞留。
      */
     @Test
-    @DisplayName("broadcast 发送失败会移除 emitter")
+    @DisplayName("broadcast 发送失败时应移除失效 emitter")
     void testBroadcastShouldRemoveEmitterOnIOException() throws Exception {
         SseEmitterManager manager = new SseEmitterManager();
-
-        // 用 mock emitter 模拟 send 失败（例如客户端断开）
         SseEmitter emitter = mock(SseEmitter.class);
         doThrow(new IOException("broken pipe")).when(emitter).send(any(SseEmitter.SseEventBuilder.class));
 
@@ -54,5 +50,21 @@ class SseEmitterManagerTest {
 
         manager.broadcast("{\"deviceId\":\"device-001\"}");
         assertThat(manager.hasClients()).isFalse();
+    }
+
+    /**
+     * 验证心跳会向在线 emitter 写出注释事件，降低反向代理因空闲而断流的概率。
+     */
+    @Test
+    @DisplayName("sendHeartbeat 应向在线 emitter 发送心跳事件")
+    void testSendHeartbeatShouldSendCommentEvent() throws Exception {
+        SseEmitterManager manager = new SseEmitterManager();
+        SseEmitter emitter = mock(SseEmitter.class);
+
+        manager.register("client-3", emitter);
+        manager.sendHeartbeat();
+
+        verify(emitter).send(any(SseEmitter.SseEventBuilder.class));
+        assertThat(manager.hasClients()).isTrue();
     }
 }

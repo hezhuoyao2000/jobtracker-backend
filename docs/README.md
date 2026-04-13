@@ -8,11 +8,11 @@
 
 | 文档 | 说明 | 目标读者 |
 |------|------|----------|
-| [API_INTEGRATION_GUIDE.md](./API_INTEGRATION_GUIDE.md) | **前后端接口对接指南** - 完整的 API 文档、DTO 定义、调用示例 | 前端开发者 |
-| [AUTHENTICATION_SYSTEM.md](./AUTHENTICATION_SYSTEM.md) | **认证系统说明** - JWT 认证流程、登录/注册接口说明 | 前后端开发者 |
-| [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) | **数据库表结构** - PostgreSQL 表定义、JPA 实体说明 | 后端开发者 |
-| [BACKEND_DEVELOPMENT_GUIDE.md](./BACKEND_DEVELOPMENT_GUIDE.md) | **后端开发指南** - 项目架构、代码规范、开发流程 | 后端开发者 |
-| [FRONTEND_MIGRATION_GUIDE.md](./FRONTEND_MIGRATION_GUIDE.md) | **前端迁移指南** - UUID 类型调整、类型定义修正 | 前端开发者 |
+| [API_INTEGRATION_GUIDE.md](jobtracker/API_INTEGRATION_GUIDE.md) | **前后端接口对接指南** - 完整的 API 文档、DTO 定义、调用示例 | 前端开发者 |
+| [AUTHENTICATION_SYSTEM.md](jobtracker/AUTHENTICATION_SYSTEM.md) | **认证系统说明** - JWT 认证流程、登录/注册接口说明 | 前后端开发者 |
+| [DATABASE_SCHEMA.md](jobtracker/DATABASE_SCHEMA.md) | **数据库表结构** - PostgreSQL 表定义、JPA 实体说明 | 后端开发者 |
+| [BACKEND_DEVELOPMENT_GUIDE.md](jobtracker/BACKEND_DEVELOPMENT_GUIDE.md) | **后端开发指南** - 项目架构、代码规范、开发流程 | 后端开发者 |
+| [FRONTEND_MIGRATION_GUIDE.md](jobtracker/FRONTEND_MIGRATION_GUIDE.md) | **前端迁移指南** - UUID 类型调整、类型定义修正 | 前端开发者 |
 
 ---
 
