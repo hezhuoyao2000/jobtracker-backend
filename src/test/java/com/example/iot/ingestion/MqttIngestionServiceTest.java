@@ -1,7 +1,9 @@
 package com.example.iot.ingestion;
 
+import com.example.iot.application.MqttIngestionService;
 import com.example.iot.config.IotProperties;
-import com.example.iot.model.DeviceReading;
+import com.example.iot.domain.DeviceReading;
+import com.example.iot.entrypoint.listener.MqttDeviceDataListener;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -67,8 +69,8 @@ class MqttIngestionServiceTest {
     @Mock
     private IotProperties.KafkaProperties kafkaProperties;
 
-    @InjectMocks
     private MqttIngestionService mqttIngestionService;
+    private MqttDeviceDataListener mqttDeviceDataListener;
 
     /**
      * 为每个测试准备默认配置桩。
@@ -84,6 +86,9 @@ class MqttIngestionServiceTest {
         lenient().when(consumerProperties.getTopic()).thenReturn("devices/data");
         lenient().when(consumerProperties.getQos()).thenReturn(1);
         lenient().when(kafkaProperties.getTopic()).thenReturn("device-data");
+
+        mqttIngestionService = new MqttIngestionService(iotProperties, kafkaTemplate, objectMapper);
+        mqttDeviceDataListener = new MqttDeviceDataListener(iotProperties, mqttConsumerClient, mqttIngestionService);
     }
 
     /**
@@ -95,9 +100,9 @@ class MqttIngestionServiceTest {
     void init_shouldSubscribeWhenConsumerEnabled() throws Exception {
         when(consumerProperties.isEnabled()).thenReturn(true);
 
-        mqttIngestionService.init();
+        mqttDeviceDataListener.init();
 
-        verify(mqttConsumerClient).setCallback(mqttIngestionService);
+        verify(mqttConsumerClient).setCallback(mqttDeviceDataListener);
         verify(mqttConsumerClient).subscribe("devices/data", 1);
     }
 
@@ -109,7 +114,7 @@ class MqttIngestionServiceTest {
     void init_shouldSkipWhenConsumerDisabled() throws Exception {
         when(consumerProperties.isEnabled()).thenReturn(false);
 
-        mqttIngestionService.init();
+        mqttDeviceDataListener.init();
 
         verify(mqttConsumerClient, never()).setCallback(any());
         verify(mqttConsumerClient, never()).subscribe(anyString(), anyInt());
@@ -139,7 +144,7 @@ class MqttIngestionServiceTest {
         when(kafkaTemplate.send("device-data", "device-001", payload))
                 .thenReturn(CompletableFuture.completedFuture(mock(SendResult.class)));
 
-        mqttIngestionService.messageArrived("devices/data", new MqttMessage(payload.getBytes()));
+        mqttIngestionService.ingest("devices/data", payload);
 
         verify(objectMapper).readValue(payload, DeviceReading.class);
         verify(kafkaTemplate).send("device-data", "device-001", payload);
@@ -157,7 +162,7 @@ class MqttIngestionServiceTest {
                 .thenThrow(new JsonProcessingException("bad json") {});
 
         assertThatCode(() ->
-                mqttIngestionService.messageArrived("devices/data", new MqttMessage(invalidPayload.getBytes()))
+                mqttIngestionService.ingest("devices/data", invalidPayload)
         ).doesNotThrowAnyException();
 
         verify(kafkaTemplate, never()).send(anyString(), anyString(), anyString());
@@ -184,7 +189,7 @@ class MqttIngestionServiceTest {
         when(kafkaTemplate.send(eq("device-data"), eq("line-7"), eq(payload)))
                 .thenReturn(CompletableFuture.completedFuture(mock(SendResult.class)));
 
-        mqttIngestionService.messageArrived("devices/data", new MqttMessage(payload.getBytes()));
+        mqttIngestionService.ingest("devices/data", payload);
 
         // 捕获 KafkaTemplate.send 的实参，验证转发契约没有被破坏。
         var topicCaptor = ArgumentCaptor.forClass(String.class);
@@ -206,7 +211,7 @@ class MqttIngestionServiceTest {
     void cleanup_shouldDisconnectConnectedClient() throws Exception {
         when(mqttConsumerClient.isConnected()).thenReturn(true);
 
-        mqttIngestionService.cleanup();
+        mqttDeviceDataListener.cleanup();
 
         verify(mqttConsumerClient).disconnect();
     }
@@ -219,6 +224,6 @@ class MqttIngestionServiceTest {
         when(mqttConsumerClient.isConnected()).thenReturn(true);
         org.mockito.Mockito.doThrow(new MqttException(1)).when(mqttConsumerClient).disconnect();
 
-        assertThatCode(() -> mqttIngestionService.cleanup()).doesNotThrowAnyException();
+        assertThatCode(() -> mqttDeviceDataListener.cleanup()).doesNotThrowAnyException();
     }
 }

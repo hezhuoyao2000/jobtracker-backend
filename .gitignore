@@ -41,6 +41,7 @@ build/
 backup/
 postgres_data/
 postgres_dev_data/
+.opencode
 
 #打包用
 .env

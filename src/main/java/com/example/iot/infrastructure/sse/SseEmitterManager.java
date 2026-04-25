@@ -1,8 +1,7 @@
-package com.example.iot.sse;
+package com.example.iot.infrastructure.sse;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -13,8 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * SSE 连接管理器。
  *
- * <p>负责维护所有在线 SseEmitter，并统一处理业务广播和心跳保活。
- * 心跳的目标不是传递业务数据，而是避免线上代理在消息空闲期主动回收长连接。</p>
+ * <p>维护在线 SseEmitter，并统一处理业务广播和心跳保活。心跳用于降低代理
+ * 在消息空闲期主动回收长连接的概率。</p>
  */
 @Slf4j
 @Component
@@ -23,7 +22,7 @@ public class SseEmitterManager {
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
 
     /**
-     * 创建并注册一个永不超时的 SSE emitter。
+     * 创建并注册一个不主动超时的 SSE emitter。
      *
      * @param clientId 当前客户端唯一标识
      * @return 已注册的 SseEmitter
@@ -35,7 +34,7 @@ public class SseEmitterManager {
     }
 
     /**
-     * 判断当前是否存在在线客户端，用于上游快速跳过无意义的 Pub/Sub 推送。
+     * 判断当前是否存在在线客户端，用于上游跳过无意义的 Pub/Sub 推送。
      */
     public boolean hasClients() {
         return !emitters.isEmpty();
@@ -66,9 +65,8 @@ public class SseEmitterManager {
     }
 
     /**
-     * 定时发送心跳注释，避免线上代理把空闲 SSE 长连接当成死连接回收。
+     * 定时发送心跳注释，保持空闲 SSE 长连接活跃。
      */
-    @Scheduled(fixedDelayString = "${iot.sse.heartbeat-interval-ms:15000}")
     public void sendHeartbeat() {
         if (emitters.isEmpty()) {
             return;
@@ -99,8 +97,6 @@ public class SseEmitterManager {
 
     /**
      * 删除指定客户端对应的 emitter。
-     *
-     * @param clientId 客户端标识
      */
     void remove(String clientId) {
         SseEmitter removed = emitters.remove(clientId);

@@ -1,5 +1,4 @@
-package com.example.iot.sse;
-
+package com.example.iot.infrastructure.sse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;

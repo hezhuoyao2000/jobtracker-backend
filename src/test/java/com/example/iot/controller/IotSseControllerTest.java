@@ -1,6 +1,7 @@
 package com.example.iot.controller;
 
-import com.example.iot.sse.SseEmitterManager;
+import com.example.iot.entrypoint.controller.IotSseController;
+import com.example.iot.infrastructure.sse.SseEmitterManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -15,19 +16,19 @@ import static org.mockito.Mockito.when;
 /**
  * IotSseController 的单元测试。
  *
- * <p>不启动 Web 容器，只验证 controller 会委托 SseEmitterManager 创建 emitter，
- * 并为线上 SSE 代理场景补齐必要响应头。</p>
+ * <p>该测试聚焦控制器方法本身，验证 SSE 响应头和 emitter 创建委托是否保持稳定。</p>
  */
 class IotSseControllerTest {
 
     /**
-     * 验证 SSE 接口会创建 emitter，并显式关闭代理缓冲。
+     * 验证 /iot/stream 建连时会创建 emitter，并写入适合 SSE 长连接的响应头。
      */
     @Test
-    @DisplayName("GET /api/iot/stream 应创建 emitter 并写入 SSE 响应头")
+    @DisplayName("GET /iot/stream 应创建 emitter 并写入 SSE 响应头")
     void testStreamDeviceDataShouldCreateEmitter() {
         SseEmitterManager manager = mock(SseEmitterManager.class);
         SseEmitter emitter = new SseEmitter(0L);
+        // 固定返回值，确保测试只验证控制器的委托和响应头行为。
         when(manager.createEmitter(anyString())).thenReturn(emitter);
 
         IotSseController controller = new IotSseController(manager);

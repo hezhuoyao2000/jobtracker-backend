@@ -1,6 +1,9 @@
 package com.example.iot.gateway;
 
 import com.example.iot.config.IotProperties;
+import com.example.iot.application.ModbusCollectionService;
+import com.example.iot.infrastructure.modbus.ModbusDeviceReader;
+import com.example.iot.infrastructure.mqtt.MqttDeviceReadingPublisher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ghgande.j2mod.modbus.facade.ModbusTCPMaster;
 import com.ghgande.j2mod.modbus.procimg.Register;
@@ -24,8 +27,8 @@ import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.lenient;
 
 /**
- * ModbusGatewayService 单元测试
- * 使用 Mockito 模拟 Modbus 和 MQTT 依赖
+ * ModbusGatewayService 鍗曞厓娴嬭瘯
+ * 浣跨敤 Mockito 妯℃嫙 Modbus 鍜?MQTT 渚濊禆
  */
 @ExtendWith(MockitoExtension.class)
 class ModbusGatewayServiceTest {
@@ -48,27 +51,29 @@ class ModbusGatewayServiceTest {
     @Mock
     private IotProperties.MqttProperties mqttConfig;
 
-    @InjectMocks
-    private ModbusGatewayService gatewayService;
+    private ModbusCollectionService gatewayService;
 
     @BeforeEach
     void setUp() throws Exception {
-        // 注入 mock 的 modbusMaster
-        gatewayService.setModbusMaster(modbusMaster);
-        gatewayService.resetRetryCount();
-
-        // 使用 lenient 避免 UnnecessaryStubbingException
+        // 浣跨敤 lenient 閬垮厤 UnnecessaryStubbingException
         lenient().when(iotProperties.getModbus()).thenReturn(modbusConfig);
         lenient().when(iotProperties.getMqtt()).thenReturn(mqttConfig);
+
+        ModbusDeviceReader modbusDeviceReader = new ModbusDeviceReader(iotProperties);
+        modbusDeviceReader.setModbusMaster(modbusMaster);
+        MqttDeviceReadingPublisher publisher =
+                new MqttDeviceReadingPublisher(iotProperties, mqttClient, objectMapper);
+        gatewayService = new ModbusCollectionService(iotProperties, modbusDeviceReader, publisher);
+        gatewayService.resetRetryCount();
     }
 
     /**
-     * 测试正常数据读取和发布
-     * 验证：中间态（原始值）和最终输出（转换后的值）
+     * 娴嬭瘯姝ｅ父鏁版嵁璇诲彇鍜屽彂甯?
+     * 楠岃瘉锛氫腑闂存€侊紙鍘熷鍊硷級鍜屾渶缁堣緭鍑猴紙杞崲鍚庣殑鍊硷級
      */
     @Test
     void testReadAndPublish_Success() throws Exception {
-        // Given: 模拟已连接状态和 Modbus 返回原始值
+        // Given: 妯℃嫙宸茶繛鎺ョ姸鎬佸拰 Modbus 杩斿洖鍘熷鍊?
         when(modbusConfig.isEnabled()).thenReturn(true);
         when(modbusMaster.isConnected()).thenReturn(true);
 
@@ -76,32 +81,32 @@ class ModbusGatewayServiceTest {
         when(modbusMaster.readMultipleRegisters(anyInt(), anyInt(), anyInt()))
                 .thenReturn(mockRegisters);
 
-        // Mock JSON 序列化
+        // Mock JSON 搴忓垪鍖?
         String expectedJson = "{\"deviceId\":\"device-001\",\"temperature\":84.8,\"rpm\":2710,\"rawTemperature\":848,\"rawRpm\":2710}";
         when(objectMapper.writeValueAsString(any())).thenReturn(expectedJson);
 
         when(mqttConfig.getTopic()).thenReturn("devices/data");
         when(mqttConfig.getQos()).thenReturn(1);
 
-        // When: 执行读取
-        gatewayService.pollDeviceData();
+        // When: 鎵ц璇诲彇
+        gatewayService.collectOnce();
 
-        // Then: 验证 MQTT 发布的消息
+        // Then: 楠岃瘉 MQTT 鍙戝竷鐨勬秷鎭?
         ArgumentCaptor<MqttMessage> messageCaptor = ArgumentCaptor.forClass(MqttMessage.class);
         verify(mqttClient).publish(eq("devices/data"), messageCaptor.capture());
 
         String payload = new String(messageCaptor.getValue().getPayload());
 
-        // 验证 JSON 内容
+        // 楠岃瘉 JSON 鍐呭
         assertThat(payload).contains("device-001").contains("84.8").contains("2710");
     }
 
     /**
-     * 测试温度换算：原始值 600 → 60.0°C
+     * 娴嬭瘯娓╁害鎹㈢畻锛氬師濮嬪€?600 鈫?60.0掳C
      */
     @Test
     void testTemperatureConversion_MinValue() throws Exception {
-        // Given: 最小温度值
+        // Given: 鏈€灏忔俯搴﹀€?
         when(modbusConfig.isEnabled()).thenReturn(true);
         when(modbusMaster.isConnected()).thenReturn(true);
 
@@ -109,14 +114,14 @@ class ModbusGatewayServiceTest {
         when(modbusMaster.readMultipleRegisters(anyInt(), anyInt(), anyInt()))
                 .thenReturn(mockRegisters);
 
-        // Mock JSON 序列化 - 实际会生成 {"temperature":60.0,...}
+        // Mock JSON 搴忓垪鍖?- 瀹為檯浼氱敓鎴?{"temperature":60.0,...}
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"temperature\":60.0}");
 
         when(mqttConfig.getTopic()).thenReturn("devices/data");
         when(mqttConfig.getQos()).thenReturn(1);
 
         // When
-        gatewayService.pollDeviceData();
+        gatewayService.collectOnce();
 
         // Then
         ArgumentCaptor<MqttMessage> messageCaptor = ArgumentCaptor.forClass(MqttMessage.class);
@@ -125,11 +130,11 @@ class ModbusGatewayServiceTest {
     }
 
     /**
-     * 测试温度换算：原始值 1000 → 100.0°C
+     * 娴嬭瘯娓╁害鎹㈢畻锛氬師濮嬪€?1000 鈫?100.0掳C
      */
     @Test
     void testTemperatureConversion_MaxValue() throws Exception {
-        // Given: 最大温度值
+        // Given: 鏈€澶ф俯搴﹀€?
         when(modbusConfig.isEnabled()).thenReturn(true);
         when(modbusMaster.isConnected()).thenReturn(true);
 
@@ -137,14 +142,14 @@ class ModbusGatewayServiceTest {
         when(modbusMaster.readMultipleRegisters(anyInt(), anyInt(), anyInt()))
                 .thenReturn(mockRegisters);
 
-        // Mock JSON 序列化
+        // Mock JSON 搴忓垪鍖?
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"temperature\":100.0}");
 
         when(mqttConfig.getTopic()).thenReturn("devices/data");
         when(mqttConfig.getQos()).thenReturn(1);
 
         // When
-        gatewayService.pollDeviceData();
+        gatewayService.collectOnce();
 
         // Then
         ArgumentCaptor<MqttMessage> messageCaptor = ArgumentCaptor.forClass(MqttMessage.class);
@@ -153,47 +158,47 @@ class ModbusGatewayServiceTest {
     }
 
     /**
-     * 测试连接断开时的重连逻辑
+     * 娴嬭瘯杩炴帴鏂紑鏃剁殑閲嶈繛閫昏緫
      */
     @Test
     void testReconnect_WhenDisconnected() throws Exception {
-        // Given: 未连接状态
+        // Given: 鏈繛鎺ョ姸鎬?
         when(modbusConfig.isEnabled()).thenReturn(true);
         when(modbusMaster.isConnected()).thenReturn(false);
 
         // When
-        gatewayService.pollDeviceData();
+        gatewayService.collectOnce();
 
-        // Then: 验证尝试重连（没有发布消息）
+        // Then: 楠岃瘉灏濊瘯閲嶈繛锛堟病鏈夊彂甯冩秷鎭級
         verify(mqttClient, never()).publish(anyString(), any(MqttMessage.class));
-        // 验证重试计数增加
+        // 楠岃瘉閲嶈瘯璁℃暟澧炲姞
         assertThat(gatewayService.getRetryCount()).isEqualTo(1);
     }
 
     /**
-     * 测试 Modbus 读取异常时的处理
+     * 娴嬭瘯 Modbus 璇诲彇寮傚父鏃剁殑澶勭悊
      */
     @Test
     void testHandleModbusException() throws Exception {
-        // Given: Modbus 读取抛出异常
+        // Given: Modbus 璇诲彇鎶涘嚭寮傚父
         when(modbusConfig.isEnabled()).thenReturn(true);
         when(modbusMaster.isConnected()).thenReturn(true);
         when(modbusMaster.readMultipleRegisters(anyInt(), anyInt(), anyInt()))
                 .thenThrow(new RuntimeException("Modbus timeout"));
 
         // When
-        gatewayService.pollDeviceData();
+        gatewayService.collectOnce();
 
-        // Then: 异常被捕获，没有发布消息
+        // Then: 寮傚父琚崟鑾凤紝娌℃湁鍙戝竷娑堟伅
         verify(mqttClient, never()).publish(anyString(), any(MqttMessage.class));
     }
 
     /**
-     * 测试 MQTT 发布异常时的处理
+     * 娴嬭瘯 MQTT 鍙戝竷寮傚父鏃剁殑澶勭悊
      */
     @Test
     void testHandleMqttException() throws Exception {
-        // Given: Modbus 正常，MQTT 发布异常
+        // Given: Modbus 姝ｅ父锛孧QTT 鍙戝竷寮傚父
         when(modbusConfig.isEnabled()).thenReturn(true);
         when(modbusMaster.isConnected()).thenReturn(true);
 
@@ -208,31 +213,31 @@ class ModbusGatewayServiceTest {
         doThrow(new RuntimeException("MQTT connection lost"))
                 .when(mqttClient).publish(anyString(), any(MqttMessage.class));
 
-        // When & Then: 不应抛出异常
-        gatewayService.pollDeviceData();
+        // When & Then: 涓嶅簲鎶涘嚭寮傚父
+        gatewayService.collectOnce();
 
-        // 验证尝试发布了消息
+        // 楠岃瘉灏濊瘯鍙戝竷浜嗘秷鎭?
         verify(mqttClient).publish(anyString(), any(MqttMessage.class));
     }
 
     /**
-     * 测试服务禁用时的行为
+     * 娴嬭瘯鏈嶅姟绂佺敤鏃剁殑琛屼负
      */
     @Test
     void testWhenDisabled() throws Exception {
-        // Given: 禁用 Modbus
+        // Given: 绂佺敤 Modbus
         when(modbusConfig.isEnabled()).thenReturn(false);
 
         // When
-        gatewayService.pollDeviceData();
+        gatewayService.collectOnce();
 
-        // Then: 不执行任何操作
+        // Then: 涓嶆墽琛屼换浣曟搷浣?
         verify(modbusMaster, never()).isConnected();
         verify(mqttClient, never()).publish(anyString(), any(MqttMessage.class));
     }
 
     /**
-     * 测试 QoS 设置
+     * 娴嬭瘯 QoS 璁剧疆
      */
     @Test
     void testMqttQoS() throws Exception {
@@ -249,7 +254,7 @@ class ModbusGatewayServiceTest {
         when(mqttConfig.getQos()).thenReturn(1);
 
         // When
-        gatewayService.pollDeviceData();
+        gatewayService.collectOnce();
 
         // Then
         ArgumentCaptor<MqttMessage> messageCaptor = ArgumentCaptor.forClass(MqttMessage.class);
@@ -258,7 +263,7 @@ class ModbusGatewayServiceTest {
         assertThat(messageCaptor.getValue().getQos()).isEqualTo(1);
     }
 
-    // ============ 辅助方法 ============
+    // ============ 杈呭姪鏂规硶 ============
 
     private Register[] createMockRegisters(int tempRaw, int rpmRaw) {
         Register tempRegister = mock(Register.class);

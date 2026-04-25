@@ -1,6 +1,7 @@
 package com.example.iot.sse;
 
 import com.example.iot.config.IotProperties;
+import com.example.iot.infrastructure.sse.SseEmitterManager;
 import com.example.myfirstspringboot.MyfirstspringbootApplication;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

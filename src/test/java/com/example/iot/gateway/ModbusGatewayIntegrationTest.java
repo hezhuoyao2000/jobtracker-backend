@@ -1,8 +1,9 @@
 package com.example.iot.gateway;
 
 import com.example.iot.IotTestApplication;
+import com.example.iot.application.MockModbusCollectionService;
 import com.example.iot.config.IotProperties;
-import com.example.iot.model.DeviceReading;
+import com.example.iot.domain.DeviceReading;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
@@ -42,7 +43,7 @@ class ModbusGatewayIntegrationTest {
     private IotProperties iotProperties;
 
     @Autowired
-    private MockModbusGatewayService mockGatewayService;
+    private MockModbusCollectionService mockGatewayService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -239,7 +240,7 @@ class ModbusGatewayIntegrationTest {
         Thread.sleep(500);
 
         // 手动触发一次
-        mockGatewayService.generateMockData();
+        mockGatewayService.generateOnce();
 
         // 等待消息（给更多时间）
         boolean received = manualLatch.await(5, TimeUnit.SECONDS);

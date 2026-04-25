@@ -1,8 +1,9 @@
 package com.example.iot.consumer;
 
+import com.example.iot.application.DeviceDataIngestService;
 import com.example.iot.config.IotProperties;
-import com.example.iot.model.DeviceReading;
-import com.example.iot.sse.SseEmitterManager;
+import com.example.iot.domain.DeviceReading;
+import com.example.iot.infrastructure.sse.SseEmitterManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.WriteApiBlocking;
@@ -55,7 +56,7 @@ class DeviceDataConsumerTest {
 
     private ObjectMapper objectMapper;
     private IotProperties iotProperties;
-    private DeviceDataConsumer deviceDataConsumer;
+    private DeviceDataIngestService deviceDataConsumer;
 
     @BeforeEach
     void setUp() {
@@ -86,7 +87,7 @@ class DeviceDataConsumerTest {
         // 默认无 SSE 客户端连接，避免每个单测都必须关心“推送出口”分支
         lenient().when(sseEmitterManager.hasClients()).thenReturn(false);
 
-        deviceDataConsumer = new DeviceDataConsumer(
+        deviceDataConsumer = new DeviceDataIngestService(
                 iotProperties,
                 Optional.of(influxDBClient),
                 stringRedisTemplate,
@@ -114,7 +115,7 @@ class DeviceDataConsumerTest {
 
         // 模拟存在 SSE 客户端时，会刷新 Redis Pub/Sub 推送出口
         when(sseEmitterManager.hasClients()).thenReturn(true);
-        deviceDataConsumer.onMessage(payload);
+        deviceDataConsumer.ingest(payload);
 
         // 捕获 InfluxDB 写入参数，确认消费链路已经触达时间序列存储。
         ArgumentCaptor<com.influxdb.client.write.Point> pointCaptor =
@@ -143,7 +144,7 @@ class DeviceDataConsumerTest {
     void testOnMessageShouldIgnoreInvalidJson() {
         String invalidPayload = "{\"deviceId\":\"broken\"";
 
-        deviceDataConsumer.onMessage(invalidPayload);
+        deviceDataConsumer.ingest(invalidPayload);
 
         verify(writeApiBlocking, never()).writePoint(any(com.influxdb.client.write.Point.class));
         verify(valueOperations, never()).set(any(), any(), any(Duration.class));
@@ -165,7 +166,7 @@ class DeviceDataConsumerTest {
 
         String payload = objectMapper.writeValueAsString(reading);
 
-        deviceDataConsumer.onMessage(payload);
+        deviceDataConsumer.ingest(payload);
 
         verify(writeApiBlocking).writePoint(any(com.influxdb.client.write.Point.class));
         verify(valueOperations).set(
@@ -197,7 +198,7 @@ class DeviceDataConsumerTest {
                 .when(writeApiBlocking)
                 .writePoint(any(com.influxdb.client.write.Point.class));
 
-        deviceDataConsumer.onMessage(payload);
+        deviceDataConsumer.ingest(payload);
 
         verify(writeApiBlocking).writePoint(any(com.influxdb.client.write.Point.class));
         verify(valueOperations).set(
@@ -229,7 +230,7 @@ class DeviceDataConsumerTest {
                 .when(valueOperations)
                 .set(any(), any(), any(Duration.class));
 
-        deviceDataConsumer.onMessage(payload);
+        deviceDataConsumer.ingest(payload);
 
         verify(writeApiBlocking).writePoint(any(com.influxdb.client.write.Point.class));
         verify(valueOperations).set(

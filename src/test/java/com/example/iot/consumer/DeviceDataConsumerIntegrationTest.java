@@ -2,7 +2,7 @@ package com.example.iot.consumer;
 
 import com.example.iot.IotTestApplication;
 import com.example.iot.config.IotProperties;
-import com.example.iot.model.DeviceReading;
+import com.example.iot.domain.DeviceReading;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.query.FluxRecord;

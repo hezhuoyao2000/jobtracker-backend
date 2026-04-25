@@ -1,5 +1,7 @@
 package com.example.iot.sse;
 
+import com.example.iot.entrypoint.listener.RedisDeviceDataListener;
+import com.example.iot.infrastructure.sse.SseEmitterManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.connection.DefaultMessage;
@@ -26,7 +28,7 @@ class RedisDeviceDataSubscriberTest {
     @DisplayName("收到 Redis 消息后应转发到 SSE")
     void testOnMessageShouldForwardToSse() {
         SseEmitterManager manager = mock(SseEmitterManager.class);
-        RedisDeviceDataSubscriber subscriber = new RedisDeviceDataSubscriber(manager);
+        RedisDeviceDataListener subscriber = new RedisDeviceDataListener(manager);
 
         String json = "{\"deviceId\":\"device-001\",\"temperature\":1.0,\"rpm\":2}";
         Message message = new DefaultMessage(
@@ -46,7 +48,7 @@ class RedisDeviceDataSubscriberTest {
     @DisplayName("空消息不应广播")
     void testOnMessageShouldIgnoreBlank() {
         SseEmitterManager manager = mock(SseEmitterManager.class);
-        RedisDeviceDataSubscriber subscriber = new RedisDeviceDataSubscriber(manager);
+        RedisDeviceDataListener subscriber = new RedisDeviceDataListener(manager);
 
         Message blank = new DefaultMessage(
                 "iot:device-data".getBytes(StandardCharsets.UTF_8),

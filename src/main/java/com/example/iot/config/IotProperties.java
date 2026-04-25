@@ -77,7 +77,7 @@ public class IotProperties {
         /**
          * Redis Pub/Sub channel 名称。
          *
-         * <p>用途：用于 SSE “推送出口”。DeviceDataConsumer 会把写入 Redis 的同一份 JSON 发布到该 channel。
+         * <p>用途：用于 SSE “推送出口”。DeviceDataIngestService 会把写入 Redis 的同一份 JSON 发布到该 channel。
          */
         private String pubsubChannel = "iot:device-data";
     }
